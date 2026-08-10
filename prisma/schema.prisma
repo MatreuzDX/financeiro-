@@ -1,0 +1,532 @@
+// Gestão financeira pessoal e profissional
+// Ver docs/PLANO-ARQUITETURA.md (secção 5) para o raciocínio por trás disto.
+//
+// ─── CONVENÇÕES DE UNIDADES ────────────────────────────────────────────────
+// Nada de vírgula flutuante. Todos os valores são inteiros exatos.
+//
+//   *Cents   Int   cêntimos.        €920,00  → 92000
+//   *Metres  Int   metros.          150,0 km → 150000
+//   *Ml      Int   mililitros.      12,345 L → 12345
+//   *E4      Int   euros × 10 000.  €1,6890  → 16890   (preços com 4 casas)
+//
+// Limite do Int: 2 147 483 647 → €21 474 836,47 por linha. Suficiente para
+// finanças pessoais e profissionais de pequena escala; se um dia não for,
+// a migração para BigInt é uma coluna de cada vez.
+//
+// ─── LIVRO DE LANÇAMENTOS ──────────────────────────────────────────────────
+// Uma Transaction é só o cabeçalho. O dinheiro vive nas Entry, e a soma das
+// Entry de cada Transaction é SEMPRE zero — garantido por um trigger, não por
+// confiança no código. Ver prisma/migrations/*_ledger_constraints.
+//
+// Sinal: positivo = dinheiro entra no "recipiente" dessa linha.
+//   Despesa 50€ no cartão:   Account(cartão) −5000 · Category(Alimentação) +5000
+//   Receita 920€ no banco:   Account(banco)  +92000 · Category(Ordenado)  −92000
+//   Transferência 200€:      Account(ordem)  −20000 · Account(poupança)   +20000
+// A transferência não toca em nenhuma Category — por isso não mexe no lucro.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// Prisma 7: a connection string vive em prisma.config.ts, não aqui.
+datasource db {
+  provider = "postgresql"
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// IDENTIDADE E ACESSO
+// ═══════════════════════════════════════════════════════════════════════════
+
+enum Role {
+  OWNER
+  ADMIN
+  MEMBER
+  VIEWER
+}
+
+enum ThemePreference {
+  LIGHT
+  DARK
+  SYSTEM
+}
+
+model User {
+  id                 String          @id @default(cuid())
+  name               String
+  email              String          @unique
+  passwordHash       String
+  role               Role            @default(MEMBER)
+  mustChangePassword Boolean         @default(false)
+  theme              ThemePreference @default(SYSTEM)
+  activeWorkspaceId  String?
+  lastLoginAt        DateTime?
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+
+  sessions    Session[]
+  memberships Membership[]
+  resetTokens PasswordResetToken[]
+
+  @@index([email])
+}
+
+/// Sessão do lado do servidor. O cookie transporta um token aleatório; aqui
+/// guarda-se apenas o SHA-256 dele — quem ler a base não consegue passar por
+/// ninguém.
+model Session {
+  id           String   @id @default(cuid())
+  userId       String
+  tokenHash    String   @unique
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+  lastSeenAt   DateTime @default(now())
+  ipHash       String?
+  userAgent    String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+/// Token de recuperação de palavra-passe. Também só o hash é guardado.
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+/// Contador de tentativas falhadas, por chave (email ou IP). A Vercel é
+/// serverless — um contador em memória não sobrevive entre pedidos, por isso
+/// o rate limiting vive na base de dados.
+model LoginAttempt {
+  key         String   @id
+  count       Int      @default(0)
+  windowStart DateTime @default(now())
+  blockedUntil DateTime?
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// MULTI-TENANCY  (a preparação para SaaS — ver plano, secção 15)
+// ═══════════════════════════════════════════════════════════════════════════
+
+enum Plan {
+  FREE
+  PRO
+}
+
+model Workspace {
+  id        String   @id @default(cuid())
+  name      String
+  currency  String   @default("EUR")
+  timezone  String   @default("Europe/Lisbon")
+  plan      Plan     @default(FREE)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  memberships   Membership[]
+  accounts      Account[]
+  categories    Category[]
+  transactions  Transaction[]
+  entries       Entry[]
+  incomeSources IncomeSource[]
+  vehicles      Vehicle[]
+  mileageLogs   MileageLog[]
+  fuelLogs      FuelLog[]
+  workJobs      WorkJob[]
+  budgets       Budget[]
+}
+
+model Membership {
+  id          String   @id @default(cuid())
+  userId      String
+  workspaceId String
+  role        Role     @default(OWNER)
+  createdAt   DateTime @default(now())
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, workspaceId])
+  @@index([workspaceId])
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// NÚCLEO FINANCEIRO
+// ═══════════════════════════════════════════════════════════════════════════
+
+enum AccountType {
+  BANK
+  CASH
+  CARD
+  SAVINGS
+  INVESTMENT
+  LOAN
+  OTHER
+}
+
+enum CategoryType {
+  INCOME
+  EXPENSE
+}
+
+enum Scope {
+  PERSONAL
+  BUSINESS
+}
+
+/// Onde o dinheiro está. Banco, dinheiro vivo, cartão, poupança.
+/// O saldo é derivado das Entry; `cachedBalanceCents` é só um atalho de
+/// leitura, atualizado na MESMA transação SQL e verificado por
+/// `npm run check:invariants`.
+model Account {
+  id                 String      @id @default(cuid())
+  workspaceId        String
+  name               String
+  type               AccountType @default(BANK)
+  institution        String?
+  currency           String      @default("EUR")
+  openingCents       Int         @default(0)
+  cachedBalanceCents Int         @default(0)
+  icon               String?
+  color              String?
+  sortOrder          Int         @default(0)
+  archived           Boolean     @default(false)
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  entries   Entry[]
+
+  @@unique([workspaceId, name])
+  @@index([workspaceId, archived, sortOrder])
+}
+
+/// Para onde o dinheiro vai (ou de onde vem). Árvore: uma categoria pode ter
+/// subcategorias.
+model Category {
+  id          String       @id @default(cuid())
+  workspaceId String
+  name        String
+  type        CategoryType
+  parentId    String?
+  scope       Scope        @default(PERSONAL)
+  icon        String?
+  color       String?
+  sortOrder   Int          @default(0)
+  isSystem    Boolean      @default(false)
+  archived    Boolean      @default(false)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  workspace Workspace  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  parent    Category?  @relation("CategoryTree", fields: [parentId], references: [id], onDelete: Restrict)
+  children  Category[] @relation("CategoryTree")
+  entries   Entry[]
+  budgetLines BudgetLine[]
+
+  @@unique([workspaceId, name, type])
+  @@index([workspaceId, type, archived])
+}
+
+enum TransactionType {
+  INCOME
+  EXPENSE
+  TRANSFER
+}
+
+enum TransactionStatus {
+  CLEARED
+  SCHEDULED
+  VOID
+}
+
+/// Cabeçalho de um movimento. Os valores estão nas Entry.
+model Transaction {
+  id          String            @id @default(cuid())
+  workspaceId String
+  date        DateTime          @db.Date
+  type        TransactionType
+  status      TransactionStatus @default(CLEARED)
+  scope       Scope             @default(PERSONAL)
+  description String
+  notes       String?
+
+  incomeSourceId String?
+  vehicleId      String?
+  workJobId      String?
+
+  createdById String?
+  revision    Int       @default(1)
+  deletedAt   DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  workspace    Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  incomeSource IncomeSource? @relation(fields: [incomeSourceId], references: [id], onDelete: Restrict)
+  vehicle      Vehicle?      @relation(fields: [vehicleId], references: [id], onDelete: Restrict)
+  workJob      WorkJob?      @relation(fields: [workJobId], references: [id], onDelete: SetNull)
+  entries      Entry[]
+
+  @@index([workspaceId, deletedAt, date])
+  @@index([workspaceId, type, date])
+  @@index([workspaceId, scope, date])
+  @@index([workspaceId, vehicleId, date])
+  @@index([workspaceId, incomeSourceId, date])
+}
+
+/// Uma linha do livro. Aponta para UMA conta OU UMA categoria, nunca ambas,
+/// nunca nenhuma (CHECK na base de dados). A soma das linhas de cada
+/// transação é zero (trigger na base de dados).
+model Entry {
+  id            String  @id @default(cuid())
+  workspaceId   String
+  transactionId String
+  accountId     String?
+  categoryId    String?
+  amountCents   Int
+  memo          String?
+
+  workspace   Workspace   @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  transaction Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  account     Account?    @relation(fields: [accountId], references: [id], onDelete: Restrict)
+  category    Category?   @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+
+  @@index([transactionId])
+  @@index([workspaceId, accountId])
+  @@index([workspaceId, categoryId])
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// TRABALHO
+// ═══════════════════════════════════════════════════════════════════════════
+
+enum IncomeSourceType {
+  SALARY
+  DELIVERY
+  FREELANCE
+  BUSINESS
+  RENTAL
+  OTHER
+}
+
+model IncomeSource {
+  id          String           @id @default(cuid())
+  workspaceId String
+  name        String
+  type        IncomeSourceType @default(OTHER)
+  scope       Scope            @default(BUSINESS)
+  color       String?
+  active      Boolean          @default(true)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  workspace    Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  transactions Transaction[]
+  workJobs     WorkJob[]
+
+  @@unique([workspaceId, name])
+  @@index([workspaceId, active])
+}
+
+enum PayModel {
+  PER_KM
+  PER_DELIVERY
+  HOURLY
+  FIXED
+}
+
+/// Um turno / trabalho / serviço prestado. "Trabalhei para a Pizzaria X,
+/// 150 km a €0,40/km" → grossCents = 6000, e nasce a receita correspondente.
+model WorkJob {
+  id             String   @id @default(cuid())
+  workspaceId    String
+  incomeSourceId String
+  vehicleId      String?
+  clientName     String
+  date           DateTime @db.Date
+
+  payModel        PayModel @default(PER_KM)
+  distanceMetres  Int      @default(0)
+  ratePerKmCents  Int      @default(0)
+  deliveries      Int      @default(0)
+  ratePerDeliveryCents Int @default(0)
+  hoursTenths     Int      @default(0) // 2,5 h → 25
+  ratePerHourCents Int     @default(0)
+  fixedCents      Int      @default(0)
+  tipsCents       Int      @default(0)
+  /// Calculado no servidor a partir dos campos acima. Nunca vem do cliente.
+  grossCents      Int      @default(0)
+
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  workspace    Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  incomeSource IncomeSource  @relation(fields: [incomeSourceId], references: [id], onDelete: Restrict)
+  vehicle      Vehicle?      @relation(fields: [vehicleId], references: [id], onDelete: Restrict)
+  transactions Transaction[]
+  mileageLogs  MileageLog[]
+
+  @@index([workspaceId, date])
+  @@index([workspaceId, incomeSourceId, date])
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// VEÍCULOS
+// ═══════════════════════════════════════════════════════════════════════════
+
+enum VehicleType {
+  MOTORCYCLE
+  SCOOTER
+  CAR
+  VAN
+  BICYCLE
+  OTHER
+}
+
+enum FuelType {
+  PETROL
+  DIESEL
+  ELECTRIC
+  HYBRID
+  LPG
+  NONE
+}
+
+model Vehicle {
+  id           String      @id @default(cuid())
+  workspaceId  String
+  name         String
+  brand        String?
+  model        String?
+  year         Int?
+  plate        String?
+  type         VehicleType @default(MOTORCYCLE)
+  fuelType     FuelType    @default(PETROL)
+  /// Conta-quilómetros atual, em metros. 24 150,5 km → 24150500
+  currentMetres Int        @default(0)
+  active       Boolean     @default(true)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  workspace    Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  mileageLogs  MileageLog[]
+  fuelLogs     FuelLog[]
+  workJobs     WorkJob[]
+  transactions Transaction[]
+
+  @@unique([workspaceId, name])
+  @@index([workspaceId, active])
+}
+
+enum MileagePurpose {
+  WORK
+  PERSONAL
+}
+
+model MileageLog {
+  id          String         @id @default(cuid())
+  workspaceId String
+  vehicleId   String
+  workJobId   String?
+  date        DateTime       @db.Date
+  startMetres Int
+  endMetres   Int
+  /// endMetres − startMetres. Calculado no servidor; nunca aceite do cliente.
+  totalMetres Int
+  purpose     MileagePurpose @default(WORK)
+  notes       String?
+  createdAt   DateTime       @default(now())
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  vehicle   Vehicle   @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  workJob   WorkJob?  @relation(fields: [workJobId], references: [id], onDelete: SetNull)
+
+  @@index([workspaceId, vehicleId, date])
+}
+
+/// Abastecimento. Serve para o consumo real (L/100 km) e entra no custo/km.
+model FuelLog {
+  id              String   @id @default(cuid())
+  workspaceId     String
+  vehicleId       String
+  date            DateTime @db.Date
+  odometerMetres  Int
+  litersMl        Int
+  /// Preço por litro em euros × 10 000. €1,689/L → 16890
+  pricePerLiterE4 Int
+  totalCents      Int
+  fullTank        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  vehicle   Vehicle   @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, vehicleId, date])
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ORÇAMENTO
+// ═══════════════════════════════════════════════════════════════════════════
+
+model Budget {
+  id          String   @id @default(cuid())
+  workspaceId String
+  /// Primeiro dia do mês a que respeita.
+  month       DateTime @db.Date
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  workspace Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  lines     BudgetLine[]
+
+  @@unique([workspaceId, month])
+}
+
+model BudgetLine {
+  id           String @id @default(cuid())
+  budgetId     String
+  categoryId   String
+  plannedCents Int    @default(0)
+
+  budget   Budget   @relation(fields: [budgetId], references: [id], onDelete: Cascade)
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@unique([budgetId, categoryId])
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// AUDITORIA
+// ═══════════════════════════════════════════════════════════════════════════
+
+/// Append-only. Um trigger impede UPDATE e DELETE — nem o código da app
+/// consegue reescrever o passado. Nunca guardar palavras-passe nem tokens.
+///
+/// `workspaceId` e `userId` são scalars SEM relação formal, de propósito: uma
+/// foreign key com ON DELETE SET NULL faria um UPDATE nesta tabela ao apagar
+/// um workspace, e o trigger de imutabilidade recusaria — deixando o
+/// workspace impossível de apagar. O registo de auditoria sobrevive ao que
+/// audita.
+model AuditLog {
+  id          String   @id @default(cuid())
+  workspaceId String?
+  userId      String?
+  userEmail   String?
+  action      String
+  entity      String?
+  entityId    String?
+  metadata    Json?
+  ipHash      String?
+  createdAt   DateTime @default(now())
+
+  @@index([workspaceId, createdAt])
+  @@index([userId, createdAt])
+}
