@@ -1,0 +1,13 @@
+{
+  "name": "Financeiro",
+  "short_name": "Financeiro",
+  "description": "Gestão financeira pessoal e profissional",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0b0f14",
+  "theme_color": "#0b0f14",
+  "lang": "pt-PT",
+  "icons": []
+}

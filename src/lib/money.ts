@@ -76,29 +76,45 @@ export function parseAmountToCents(raw: string): Cents | null {
   const lastDot = s.lastIndexOf(".");
   let decimalSep = "";
   if (lastComma !== -1 && lastDot !== -1) {
-    // O separador decimal é o que aparece mais à direita.
+    // Com os dois presentes, o separador decimal é o que está mais à direita.
     decimalSep = lastComma > lastDot ? "," : ".";
   } else if (lastComma !== -1) {
-    // "1,234" é ambíguo: com 3 dígitos à direita tratamos como milhares.
-    decimalSep = s.length - lastComma - 1 === 3 ? "" : ",";
+    // Em pt-PT a vírgula é SEMPRE o separador decimal.
+    //
+    // Não há aqui exceção de "milhares": tratar "12,345" como 12 345 € seria
+    // um erro de mil vezes num sítio onde isso é dinheiro real. Quem escreve
+    // três casas decimais enganou-se, e é melhor recusar e pedir que corrija
+    // do que registar €12.345,00 em silêncio.
+    decimalSep = ",";
   } else if (lastDot !== -1) {
+    // Só com ponto é ambíguo: "1.234" é milhar em pt-PT, "12.34" é decimal
+    // de quem tem o teclado em inglês. Três dígitos à direita → milhar.
     decimalSep = s.length - lastDot - 1 === 3 ? "" : ".";
   }
 
-  let integerPart = s;
+  let rawInteger = s;
   let decimalPart = "";
   if (decimalSep) {
     const idx = s.lastIndexOf(decimalSep);
-    integerPart = s.slice(0, idx);
+    rawInteger = s.slice(0, idx);
     decimalPart = s.slice(idx + 1);
   }
 
-  integerPart = integerPart.replace(/[.,]/g, "");
   if (decimalPart.includes(".") || decimalPart.includes(",")) return null;
   if (decimalPart.length > 2) return null;
-  if (integerPart === "" && decimalPart === "") return null;
-  if (integerPart !== "" && !/^\d+$/.test(integerPart)) return null;
   if (decimalPart !== "" && !/^\d+$/.test(decimalPart)) return null;
+
+  // A parte inteira só pode ser dígitos seguidos ("1234") ou grupos de
+  // milhares corretos ("1.234", "1.234.567"). Sem esta verificação, "1,2,3"
+  // era lido como €12,30 — um valor que a pessoa nunca escreveu.
+  const plain = /^\d+$/;
+  const grouped = /^\d{1,3}(?:[.,]\d{3})+$/;
+  if (rawInteger !== "" && !plain.test(rawInteger) && !grouped.test(rawInteger)) {
+    return null;
+  }
+
+  const integerPart = rawInteger.replace(/[.,]/g, "");
+  if (integerPart === "" && decimalPart === "") return null;
 
   const euros = integerPart === "" ? 0 : Number(integerPart);
   const cents = decimalPart === "" ? 0 : Number(decimalPart.padEnd(2, "0"));
@@ -217,6 +233,17 @@ export function formatCostPerKm(centsPerKm: number): string {
     minimumFractionDigits: 3,
     maximumFractionDigits: 3,
   })} €/km`;
+}
+
+/**
+ * Nega um valor sem produzir `-0`.
+ *
+ * `-0` é igual a `0` em quase todo o lado, mas formata-se como "-0,00 €" —
+ * e um "menos zero euros" no ecrã de um sistema financeiro parece um bug
+ * (porque é).
+ */
+export function negate(value: Cents): Cents {
+  return value === 0 ? 0 : -value;
 }
 
 /** Percentagem inteira e limitada, para barras de progresso. */
