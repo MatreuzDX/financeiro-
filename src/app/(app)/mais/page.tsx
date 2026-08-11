@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import { requireSession } from "@/server/auth/guard";
-import { MAIN_NAV } from "@/components/nav";
+import { BOTTOM_NAV_HREFS, MAIN_NAV } from "@/lib/navigation";
 import { Card, PageHeader } from "@/components/ui";
 import { logoutAction } from "../actions";
 
@@ -17,7 +17,7 @@ export default async function MaisPage() {
   const session = await requireSession("/mais");
 
   const items = MAIN_NAV.filter(
-    (item) => !["/", "/movimentos", "/orcamento"].includes(item.href),
+    (item) => !BOTTOM_NAV_HREFS.includes(item.href),
   );
 
   return (

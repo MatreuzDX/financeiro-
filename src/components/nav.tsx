@@ -4,51 +4,17 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   ArrowLeftRight,
-  Bike,
-  Car,
-  ChartColumn,
-  CreditCard,
   House,
   MoreHorizontal,
   Plus,
-  Settings,
-  Tags,
   Target,
-  TrendingDown,
-  TrendingUp,
-  Wallet,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
-
-export type NavItem = {
-  href: string;
-  label: string;
-  Icon: typeof House;
-};
-
-export const MAIN_NAV: NavItem[] = [
-  { href: "/", label: "Início", Icon: House },
-  { href: "/movimentos", label: "Movimentos", Icon: ArrowLeftRight },
-  { href: "/receitas", label: "Receitas", Icon: TrendingUp },
-  { href: "/despesas", label: "Despesas", Icon: TrendingDown },
-  { href: "/orcamento", label: "Orçamento", Icon: Target },
-  { href: "/contas", label: "Contas", Icon: Wallet },
-  { href: "/categorias", label: "Categorias", Icon: Tags },
-  { href: "/fontes", label: "Fontes de renda", Icon: CreditCard },
-  { href: "/trabalhos", label: "Trabalhos", Icon: Bike },
-  { href: "/veiculos", label: "Veículos", Icon: Car },
-  { href: "/relatorios", label: "Relatórios", Icon: ChartColumn },
-  { href: "/definicoes", label: "Definições", Icon: Settings },
-];
-
-/**
- * Comparação por segmento: `/contas` não pode dar-se por ativa quando se
- * está em `/contabilidade`.
- */
-function isActive(pathname: string, href: string): boolean {
-  if (href === "/") return pathname === "/";
-  return pathname === href || pathname.startsWith(`${href}/`);
-}
+import {
+  isActivePath as isActive,
+  MAIN_NAV,
+  type NavItem,
+} from "@/lib/navigation";
 
 export function Sidebar({ workspaceName }: { workspaceName: string }) {
   const pathname = usePathname();
