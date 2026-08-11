@@ -21,7 +21,10 @@ const schema = z.object({
       32,
       "SESSION_SECRET tem de ter pelo menos 32 caracteres. Gerar com: node -e \"console.log(require('crypto').randomBytes(48).toString('base64url'))\"",
     ),
-  NEXT_PUBLIC_APP_URL: z.string().url().default("http://localhost:3000"),
+  NEXT_PUBLIC_APP_URL: z.string().url().optional(),
+  // Preenchidas pela Vercel automaticamente.
+  VERCEL_PROJECT_PRODUCTION_URL: z.string().optional(),
+  VERCEL_URL: z.string().optional(),
   NODE_ENV: z
     .enum(["development", "test", "production"])
     .default("development"),
@@ -43,3 +46,21 @@ export function env(): z.infer<typeof schema> {
 }
 
 export const isProduction = () => process.env.NODE_ENV === "production";
+
+/**
+ * Endereço público da aplicação, para os links que saem daqui (recuperação
+ * de palavra-passe).
+ *
+ * Em produção a Vercel preenche `VERCEL_PROJECT_PRODUCTION_URL` — usa-se
+ * essa em vez de `VERCEL_URL`, que muda a cada deploy e daria links a apontar
+ * para deployments antigos que ninguém deve usar.
+ */
+export function appUrl(): string {
+  const e = env();
+  if (e.NEXT_PUBLIC_APP_URL) return e.NEXT_PUBLIC_APP_URL;
+  if (e.VERCEL_PROJECT_PRODUCTION_URL) {
+    return `https://${e.VERCEL_PROJECT_PRODUCTION_URL}`;
+  }
+  if (e.VERCEL_URL) return `https://${e.VERCEL_URL}`;
+  return "http://localhost:3000";
+}

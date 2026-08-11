@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { NextRequest } from "next/server";
 import proxy from "@/proxy";
-import { SESSION_COOKIE } from "@/server/auth/session";
+import { SESSION_COOKIE } from "@/lib/auth-cookie";
 
 function request(path: string, withCookie: boolean) {
   const req = new NextRequest(new URL(`http://localhost:3000${path}`));

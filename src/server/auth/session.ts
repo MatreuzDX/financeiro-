@@ -15,9 +15,10 @@ import { createHash } from "node:crypto";
 import { cookies } from "next/headers";
 import type { Role } from "@prisma/client";
 import { prisma } from "@/server/db";
+import { SESSION_COOKIE } from "@/lib/auth-cookie";
 import { randomToken } from "./password";
 
-export const SESSION_COOKIE = "fin_session";
+export { SESSION_COOKIE };
 
 const SESSION_DAYS = 30;
 /** Só se escreve na base se a última visita foi há mais de isto. */

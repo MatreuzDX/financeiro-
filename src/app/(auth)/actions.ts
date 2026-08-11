@@ -2,7 +2,7 @@
 
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { env } from "@/lib/env";
+import { appUrl } from "@/lib/env";
 import {
   completePasswordReset,
   login,
@@ -65,7 +65,7 @@ export async function requestResetAction(
   const result = await requestPasswordReset({
     email,
     ip: meta.ip,
-    appUrl: env().NEXT_PUBLIC_APP_URL,
+    appUrl: appUrl(),
   });
 
   if (!result.ok) return { error: result.error, values: { email } };

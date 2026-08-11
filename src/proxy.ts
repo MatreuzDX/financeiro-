@@ -1,5 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { SESSION_COOKIE } from "@/server/auth/session";
+// Do módulo neutro, NÃO de `server/auth/session` — senão o Prisma vinha atrás
+// para dentro do edge. Ver o comentário em `lib/auth-cookie.ts`.
+import { SESSION_COOKIE } from "@/lib/auth-cookie";
 
 /**
  * Primeira barreira de acesso.
