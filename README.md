@@ -22,12 +22,14 @@ dados suficientes para o calcular, em vez de inventar um número.
 
 ```bash
 npm install
-cp .env.example .env      # e preencher SESSION_SECRET e ADMIN_EMAIL
+cp .env.example .env      # a DATABASE_URL local já lá está preenchida
 npm run db:start          # Postgres local, sem Docker, na porta 5434
 npm run db:migrate
-npm run setup:admin       # mostra UMA vez uma palavra-passe forte
 npm run dev
 ```
+
+Depois abre `http://localhost:3000` — a app leva-te a `/instalar` para
+criares a primeira conta.
 
 Para dados de demonstração (só em desenvolvimento):
 
@@ -35,11 +37,9 @@ Para dados de demonstração (só em desenvolvimento):
 npm run db:seed
 ```
 
-`SESSION_SECRET` gera-se com:
-
-```bash
-node -e "console.log(require('crypto').randomBytes(48).toString('base64url'))"
-```
+A **única** variável obrigatória é a `DATABASE_URL`. Não há segredo de
+sessão a configurar: as sessões são tokens aleatórios guardados como hash na
+base, não cookies assinados.
 
 ## Comandos
 
@@ -53,7 +53,7 @@ node -e "console.log(require('crypto').randomBytes(48).toString('base64url'))"
 | `npm run db:start` / `db:stop` / `db:reset` | Postgres local |
 | `npm run db:migrate` / `db:deploy` | Migrações |
 | `npm run db:seed` | Dados de demonstração |
-| `npm run setup:admin` | Cria o administrador inicial |
+| `npm run setup:admin` | Cria o administrador pelo terminal (alternativa a `/instalar`) |
 | `npm run reset-password -- email@x.pt` | Define palavra-passe nova pelo terminal |
 | `npm run check:invariants` | Verifica que os números batem certo |
 

@@ -82,6 +82,68 @@ export async function seedDefaultCategories(workspaceId: string) {
   await prisma.category.createMany({ data: rows, skipDuplicates: true });
 }
 
+/** Há alguém registado? Decide se a app mostra o login ou a instalação. */
+export async function hasAnyUser(): Promise<boolean> {
+  return (await prisma.user.count()) > 0;
+}
+
+/**
+ * Cria a PRIMEIRA conta — a do dono — a partir da própria aplicação.
+ *
+ * Existe para não ser preciso correr comandos contra a base de produção só
+ * para ter por onde entrar. Só funciona enquanto não existir nenhuma conta:
+ * a partir daí, esta porta fecha-se para sempre.
+ *
+ * O `pg_advisory_xact_lock` serializa este caminho. Sem ele, dois pedidos
+ * ao mesmo tempo podiam ver ambos "zero contas" e criar dois donos.
+ */
+export async function createFirstOwner(input: {
+  name: string;
+  email: string;
+  password: string;
+}) {
+  const email = input.email.trim().toLowerCase();
+  const passwordHash = await hashPassword(input.password);
+
+  const created = await prisma.$transaction(async (tx) => {
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(4242)`;
+
+    const existing = await tx.user.count();
+    if (existing > 0) {
+      throw new Error(
+        "Esta aplicação já tem uma conta. Entre com ela, ou peça a quem administra para criar a sua.",
+      );
+    }
+
+    const user = await tx.user.create({
+      data: {
+        name: input.name.trim(),
+        email,
+        passwordHash,
+        role: "OWNER",
+        mustChangePassword: false,
+      },
+    });
+
+    const workspace = await tx.workspace.create({
+      data: {
+        name: `Finanças de ${input.name.trim()}`,
+        memberships: { create: { userId: user.id, role: "OWNER" } },
+      },
+    });
+
+    await tx.user.update({
+      where: { id: user.id },
+      data: { activeWorkspaceId: workspace.id },
+    });
+
+    return { ...user, workspaceId: workspace.id };
+  });
+
+  await seedDefaultCategories(created.workspaceId);
+  return created;
+}
+
 export async function createUserWithWorkspace(input: {
   name: string;
   email: string;

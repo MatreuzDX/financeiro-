@@ -63,12 +63,31 @@ casas é um erro de digitação e recusa-se, não se adivinha. Só o ponto sozin
 `-(0)` é `-0`, que formata como **"-0,00 €"** e parece um bug. Usar
 `negate()` de `src/lib/money.ts`.
 
-### 6. Ambient const enums com `isolatedModules`
+### 6. Configuração que ninguém lê
+
+Havia um `SESSION_SECRET` obrigatório que **não era usado por nada** — as
+sessões são tokens aleatórios guardados como SHA-256 na base, não cookies
+assinados. Só servia para complicar o deploy e dar uma falsa sensação de
+segurança. Foi removido. Se um dia houver cookies assinados ou CSRF com
+token, volta — e aí será mesmo preciso.
+
+Vale a pena o hábito: antes de exigir uma variável de ambiente, procurar
+onde é lida.
+
+### 7. `prisma.config.ts` é lido em TODOS os comandos
+
+O helper `env()` da Prisma rebenta quando a variável não existe. Como o
+ficheiro de configuração é lido também pelo `prisma generate` (que corre no
+`postinstall` e não precisa de base de dados), o `npm install` falhava na
+Vercel antes sequer de haver build. Lê-se `process.env.DATABASE_URL`
+diretamente, com fallback vazio.
+
+### 8. Ambient const enums com `isolatedModules`
 
 `Algorithm.Argon2id` do `@node-rs/argon2` não compila. Está escrito como
 `2 as Algorithm`, com comentário.
 
-### 7. Testar com o painel do browser fechado
+### 9. Testar com o painel do browser fechado
 
 O React revela o conteúdo em suspense dentro de um `requestAnimationFrame`.
 Num separador que não está a compor imagens, isso **nunca corre** e a página

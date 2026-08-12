@@ -18,6 +18,7 @@ import {
   LedgerError,
 } from "@/server/ledger";
 import { getSummary, getTotalBalance } from "@/server/reports";
+import { createFirstOwner, hasAnyUser } from "@/server/onboarding";
 
 type Fixture = {
   session: SessionUser;
@@ -332,6 +333,26 @@ describe("apagar", () => {
     // Continua lá, com a marca de apagado.
     const row = await prisma.transaction.findUniqueOrThrow({ where: { id } });
     expect(row.deletedAt).not.toBeNull();
+  });
+});
+
+describe("instalação inicial", () => {
+  it("recusa criar uma segunda conta pela porta da instalação", async () => {
+    // A porta só está aberta enquanto não houver ninguém. Como as fixtures
+    // já criaram utilizadores, tem de recusar.
+    await fixture("instalacao");
+    await expect(
+      createFirstOwner({
+        name: "Intruso",
+        email: `intruso-${randomUUID().slice(0, 8)}@exemplo.local`,
+        password: "uma-Palavra-Passe-9!",
+      }),
+    ).rejects.toThrow(/já tem uma conta/i);
+  });
+
+  it("sabe dizer que já existe alguém registado", async () => {
+    await fixture("ha-alguem");
+    expect(await hasAnyUser()).toBe(true);
   });
 });
 

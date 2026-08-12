@@ -27,7 +27,7 @@ describe("proxy", () => {
   });
 
   it("deixa passar as páginas públicas sem sessão", () => {
-    for (const path of ["/entrar", "/recuperar", "/redefinir"]) {
+    for (const path of ["/entrar", "/recuperar", "/redefinir", "/instalar"]) {
       expect(locationOf(proxy(request(path, false)))).toBeNull();
     }
   });

@@ -15,7 +15,14 @@ import { SESSION_COOKIE } from "@/lib/auth-cookie";
  * carregar a página privada.
  */
 
-const PUBLIC_PREFIXES = ["/entrar", "/recuperar", "/redefinir"];
+const PUBLIC_PREFIXES = [
+  "/entrar",
+  "/recuperar",
+  "/redefinir",
+  // Instalação inicial. A própria página fecha-se assim que existir uma
+  // conta — o proxy não consegue verificar isso porque não fala com a base.
+  "/instalar",
+];
 
 /**
  * Comparação por SEGMENTO, não por prefixo de texto.

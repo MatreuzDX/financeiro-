@@ -3,6 +3,10 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { appUrl } from "@/lib/env";
+import { recordAudit } from "@/server/audit";
+import { checkPasswordStrength } from "@/server/auth/password";
+import { createSession, setSessionCookie } from "@/server/auth/session";
+import { createFirstOwner, hasAnyUser } from "@/server/onboarding";
 import {
   completePasswordReset,
   login,
@@ -50,6 +54,72 @@ export async function loginAction(
   }
 
   redirect(next);
+}
+
+/**
+ * Cria a primeira conta. Só funciona enquanto a aplicação não tiver
+ * nenhuma — depois disso esta ação recusa sempre.
+ */
+export async function installAction(
+  _prev: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const name = String(formData.get("name") ?? "").trim();
+  const email = String(formData.get("email") ?? "").trim();
+  const password = String(formData.get("password") ?? "");
+  const confirm = String(formData.get("confirm") ?? "");
+  const values = { name, email };
+
+  if (name.length < 2) {
+    return { error: "Escreva o seu nome.", values };
+  }
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+    return { error: "Escreva um email válido.", values };
+  }
+  if (password !== confirm) {
+    return { error: "As duas palavras-passe não são iguais.", values };
+  }
+
+  const problems = checkPasswordStrength(password);
+  if (problems.length > 0) return { error: problems.join(" "), values };
+
+  if (await hasAnyUser()) {
+    return {
+      error: "Esta aplicação já está configurada. Entre com a sua conta.",
+      values,
+    };
+  }
+
+  let userId: string;
+  let workspaceId: string;
+  try {
+    const user = await createFirstOwner({ name, email, password });
+    userId = user.id;
+    workspaceId = user.workspaceId;
+  } catch (error) {
+    return {
+      error:
+        error instanceof Error
+          ? error.message
+          : "Não foi possível criar a conta.",
+      values,
+    };
+  }
+
+  // Entra logo, para não haver um passo extra a seguir.
+  const meta = await clientMeta();
+  const { token, expiresAt } = await createSession(userId, meta);
+  await setSessionCookie(token, expiresAt);
+
+  await recordAudit({
+    action: "admin.created",
+    userId,
+    userEmail: email,
+    workspaceId,
+    metadata: { via: "instalacao inicial" },
+  });
+
+  redirect("/");
 }
 
 export async function requestResetAction(
