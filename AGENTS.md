@@ -87,7 +87,27 @@ diretamente, com fallback vazio.
 `Algorithm.Argon2id` do `@node-rs/argon2` não compila. Está escrito como
 `2 as Algorithm`, com comentário.
 
-### 9. Testar com o painel do browser fechado
+### 9. Medir o telemóvel sem se enganar a si próprio
+
+Duas formas de obter um resultado **falso** ao verificar os 375px, ambas já
+cometidas neste projeto:
+
+1. **Iframes de 375px dão sempre verde.** O CSP da app tem
+   `frame-ancestors 'none'`, por isso o embed é bloqueado, `contentDocument`
+   vem `null` e a medição não mede nada. Zero elementos a transbordar porque
+   zero elementos.
+
+2. **Sondar o DOM logo a seguir a navegar apanha o meio do streaming.** O
+   boundary do `loading.tsx` ainda não resolveu, o conteúdo está estacionado
+   numa `div` oculta no fim do `body`, e `main` só tem esqueleto. Cheguei a
+   anunciar isto como bug de produção — não era. Um screenshot mostrou a
+   página perfeita.
+
+O que funciona: viewport mobile a sério (não iframe), **esperar ~3 s** antes
+de medir, e **confirmar com screenshot**. Se o medidor e os olhos
+discordarem, são os olhos que têm razão.
+
+### 10. Testar com o painel do browser fechado
 
 O React revela o conteúdo em suspense dentro de um `requestAnimationFrame`.
 Num separador que não está a compor imagens, isso **nunca corre** e a página

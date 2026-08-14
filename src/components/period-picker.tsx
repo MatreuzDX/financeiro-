@@ -54,7 +54,9 @@ export function PeriodPicker({
             }}
             aria-pressed={current === key}
             className={cn(
-              "shrink-0 rounded-full border px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-colors",
+              // min-h-9 (36px): a 375px estes botões ficavam com 30px de
+              // altura, e são dos mais tocados da app. Medido, não estimado.
+              "inline-flex min-h-9 shrink-0 items-center rounded-full border px-3.5 text-xs font-medium whitespace-nowrap transition-colors",
               current === key
                 ? "border-primary bg-primary-soft text-primary"
                 : "border-line bg-surface text-muted hover:text-ink",
@@ -69,7 +71,7 @@ export function PeriodPicker({
           aria-pressed={current === "personalizado"}
           aria-expanded={showCustom}
           className={cn(
-            "inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-colors",
+            "inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-full border px-3.5 text-xs font-medium whitespace-nowrap transition-colors",
             current === "personalizado"
               ? "border-primary bg-primary-soft text-primary"
               : "border-line bg-surface text-muted hover:text-ink",
