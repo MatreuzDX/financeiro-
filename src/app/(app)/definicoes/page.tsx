@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { cookies } from "next/headers";
-import { ChevronRight, Download, KeyRound } from "lucide-react";
+import { ChevronRight, Download, KeyRound, Wand } from "lucide-react";
 import { requireSession } from "@/server/auth/guard";
 import { ROLE_LABELS } from "@/server/auth/permissions";
 import { prisma } from "@/server/db";
@@ -72,6 +72,23 @@ export default async function DefinicoesPage() {
                 <span className="block text-sm text-ink">Palavra-passe</span>
                 <span className="block text-[11px] text-muted">
                   Alterar e fechar as outras sessões
+                </span>
+              </span>
+              <ChevronRight size={16} className="shrink-0 text-faint" aria-hidden />
+            </Link>
+          </li>
+          <li>
+            <Link
+              href="/comecar?rever=1"
+              className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-surface-hover"
+            >
+              <Wand size={17} className="shrink-0 text-muted" aria-hidden />
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm text-ink">
+                  Rever a configuração
+                </span>
+                <span className="block text-[11px] text-muted">
+                  Voltar às perguntas iniciais e reajustar os valores
                 </span>
               </span>
               <ChevronRight size={16} className="shrink-0 text-faint" aria-hidden />

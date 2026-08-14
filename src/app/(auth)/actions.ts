@@ -119,7 +119,9 @@ export async function installAction(
     metadata: { via: "instalacao inicial" },
   });
 
-  redirect("/");
+  // Não vai para o dashboard: vai para as perguntas. Um primeiro ecrã todo
+  // vazio, sem nada onde clicar, é a forma mais rápida de alguém desistir.
+  redirect("/comecar");
 }
 
 export async function requestResetAction(

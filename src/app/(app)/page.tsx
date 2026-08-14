@@ -20,6 +20,7 @@ import {
   metresToKmString,
   percentOf,
 } from "@/lib/money";
+import { needsSetup } from "@/server/setup";
 import {
   Card,
   CardHeader,
@@ -27,6 +28,7 @@ import {
   LinkButton,
   Money,
   ProgressBar,
+  SuccessBanner,
 } from "@/components/ui";
 import { PeriodPicker } from "@/components/period-picker";
 import {
@@ -75,6 +77,8 @@ export default async function DashboardPage({
     listTransactions(session.workspaceId, range, { take: 5 }),
   ]);
 
+  const porConfigurar = await needsSetup(session.workspaceId);
+
   const vehicle = vehicles[0]
     ? await getVehicleStats(session.workspaceId, vehicles[0].id, range)
     : null;
@@ -90,6 +94,34 @@ export default async function DashboardPage({
 
   return (
     <div className="space-y-4">
+      {params.configurado ? (
+        <SuccessBanner>
+          Configuração concluída. Tudo o que criou pode ser alterado nas
+          páginas de contas, veículos e orçamento.
+        </SuccessBanner>
+      ) : null}
+
+      {/*
+        Quem saltou o assistente não pode ficar com um dashboard vazio e sem
+        pistas. Isto é a porta de volta — e desaparece sozinho assim que
+        houver uma conta criada.
+      */}
+      {porConfigurar ? (
+        <Card className="animate-rise border-primary/30 bg-primary-soft">
+          <p className="text-sm font-medium text-primary">
+            Ainda falta dizer quanto tem
+          </p>
+          <p className="mt-1 mb-3 text-xs leading-relaxed text-primary/80">
+            Cinco perguntas rápidas — quanto tem, de onde vem, se usa veículo
+            e o que paga todos os meses — e o dashboard passa a mostrar
+            números a sério.
+          </p>
+          <LinkButton href="/comecar" size="sm">
+            Responder agora
+          </LinkButton>
+        </Card>
+      ) : null}
+
       <div className="flex flex-col gap-3">
         <div>
           <h1 className="text-xl font-semibold tracking-tight text-ink">

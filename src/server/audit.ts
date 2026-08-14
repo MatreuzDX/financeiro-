@@ -23,6 +23,7 @@ export type AuditAction =
   | "auth.password_reset_requested"
   | "auth.password_reset_completed"
   | "admin.created"
+  | "setup.completed"
   | "transaction.created"
   | "transaction.updated"
   | "transaction.deleted"
@@ -102,6 +103,7 @@ export const AUDIT_LABELS: Record<string, string> = {
   "auth.password_reset_requested": "Pediu recuperação de palavra-passe",
   "auth.password_reset_completed": "Redefiniu a palavra-passe",
   "admin.created": "Conta de administrador criada",
+  "setup.completed": "Configuração inicial concluída",
   "transaction.created": "Movimento criado",
   "transaction.updated": "Movimento alterado",
   "transaction.deleted": "Movimento apagado",
