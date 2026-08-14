@@ -67,7 +67,10 @@ export default function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    // Tudo menos ficheiros estáticos, imagens do Next e o favicon.
-    "/((?!_next/static|_next/image|favicon.ico|manifest.webmanifest|icons/).*)",
+    // Tudo menos os ficheiros que o browser tem de conseguir buscar SEM
+    // sessão. O manifesto e os ícones entram aqui de propósito: sem isso, o
+    // telemóvel pedia o ícone, apanhava um redirecionamento para `/entrar`,
+    // e o atalho no ecrã inicial ficava sem imagem.
+    "/((?!_next/|favicon\\.ico|manifest\\.webmanifest|apple-icon|icon\\.svg|icone).*)",
   ],
 };

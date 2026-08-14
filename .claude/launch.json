@@ -1,0 +1,18 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "Financeiro",
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": [
+        "/c",
+        "npm",
+        "run",
+        "dev",
+        "--prefix",
+        "C:\\Users\\Mateus\\Desktop\\financeiro"
+      ],
+      "port": 3000
+    }
+  ]
+}

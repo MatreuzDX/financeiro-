@@ -5,15 +5,10 @@ import { PasswordForm } from "./password-form";
 
 export const metadata: Metadata = { title: "Palavra-passe" };
 
-export default async function PalavraPassePage({
-  searchParams,
-}: {
-  searchParams: Promise<{ obrigatorio?: string }>;
-}) {
+export default async function PalavraPassePage() {
   // Variante "raw": esta é a única página que uma conta com troca de
   // palavra-passe obrigatória consegue abrir.
   const session = await requireSessionRaw();
-  const params = await searchParams;
 
   return (
     <div className="mx-auto max-w-md space-y-4">
@@ -22,7 +17,13 @@ export default async function PalavraPassePage({
         description={session.email}
       />
 
-      {params.obrigatorio || session.mustChangePassword ? (
+      {/*
+        Só a sessão decide, NÃO o parâmetro da URL: depois de trocar a
+        palavra-passe o `?obrigatorio=1` continua no endereço, e o aviso
+        ficava a dizer a alguém que já tinha cumprido que ainda tinha de
+        cumprir.
+      */}
+      {session.mustChangePassword ? (
         <InfoNote>
           Esta conta foi criada com uma palavra-passe gerada automaticamente.
           Antes de continuar, defina uma que só você conheça.

@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { getSession } from "@/server/auth/session";
 import { changePassword } from "@/server/auth/service";
 
@@ -32,6 +33,16 @@ export async function changePasswordAction(
   if (!result.ok) return { error: result.error };
 
   revalidatePath("/", "layout");
+
+  // BUG apanhado a testar: quem foi OBRIGADO a trocar a palavra-passe ficava
+  // preso nesta página. A troca corria bem, mas o aviso "defina uma que só
+  // você conheça" continuava lá — e não havia botão nenhum para seguir em
+  // frente. Agora, cumprida a obrigação, vai direto para o início.
+  //
+  // Redirecionar só faz sentido no caminho de SUCESSO: num erro, devolve-se
+  // estado para o formulário manter o que a pessoa escreveu.
+  if (session.mustChangePassword) redirect("/");
+
   return {
     success:
       "Palavra-passe alterada. As restantes sessões abertas foram fechadas.",
