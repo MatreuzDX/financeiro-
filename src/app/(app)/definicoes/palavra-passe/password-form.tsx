@@ -9,6 +9,7 @@ import {
   Input,
   SuccessBanner,
 } from "@/components/ui";
+import { MIN_PASSWORD_LENGTH, PASSWORD_HINT } from "@/lib/password-rules";
 import { changePasswordAction, type PasswordState } from "../actions";
 
 function SubmitButton() {
@@ -42,14 +43,14 @@ export function PasswordForm() {
 
       <Field
         label="Palavra-passe nova"
-        hint="Pelo menos 12 caracteres, misturando maiúsculas, minúsculas, números ou símbolos."
+        hint={PASSWORD_HINT}
       >
         <Input
           name="next"
           type="password"
           autoComplete="new-password"
           required
-          minLength={12}
+          minLength={MIN_PASSWORD_LENGTH}
         />
       </Field>
 
@@ -59,7 +60,7 @@ export function PasswordForm() {
           type="password"
           autoComplete="new-password"
           required
-          minLength={12}
+          minLength={MIN_PASSWORD_LENGTH}
         />
       </Field>
 

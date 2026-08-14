@@ -9,6 +9,7 @@
 import "server-only";
 import { hash, verify, type Algorithm } from "@node-rs/argon2";
 import { randomBytes, randomInt } from "node:crypto";
+import { MIN_PASSWORD_LENGTH } from "@/lib/password-rules";
 
 /**
  * `Algorithm` é um const enum e o TypeScript com `isolatedModules` não deixa
@@ -24,7 +25,23 @@ const ARGON2_OPTIONS = {
   parallelism: 1,
 } as const;
 
-export const MIN_PASSWORD_LENGTH = 12;
+/**
+ * Mínimo de 8 caracteres, sem regras de composição.
+ *
+ * Estava em 12 + "misture três de quatro tipos". Impediu o próprio dono da
+ * app de criar a sua conta, e não é sequer o que as boas práticas atuais
+ * recomendam: as regras de composição levam as pessoas a escolher
+ * `Palavra1!` — previsível para uma máquina, chato para a pessoa.
+ *
+ * O que fica a proteger, que vale mais:
+ *   • comprimento mínimo
+ *   • lista de palavras-passe demasiado comuns
+ *   • rate limiting: 5 tentativas por 15 minutos, por email E por IP
+ *   • argon2id, que torna cada tentativa cara
+ *
+ * Ver `rate-limit.ts` — é essa a defesa a sério contra força bruta.
+ */
+export { MIN_PASSWORD_LENGTH };
 
 export async function hashPassword(plain: string): Promise<string> {
   return hash(plain, ARGON2_OPTIONS);
@@ -47,7 +64,7 @@ export async function verifyPassword(
 }
 
 /**
- * Palavras-passe demasiado comuns para servirem, mesmo tendo 12 caracteres.
+ * Palavras-passe demasiado comuns para servirem, seja qual for o tamanho.
  * Lista curta de propósito: apanha o previsível sem dar a ilusão de ser
  * uma verificação séria contra dicionários.
  */
@@ -91,16 +108,9 @@ export function checkPasswordStrength(plain: string): PasswordProblem[] {
   if (/^(.)\1+$/.test(plain)) {
     problems.push("Não pode ser o mesmo carácter repetido.");
   }
-  const classes = [/[a-z]/, /[A-Z]/, /\d/, /[^A-Za-z0-9]/].filter((r) =>
-    r.test(plain),
-  ).length;
-  if (classes < 3) {
-    problems.push(
-      "Misture pelo menos três de: minúsculas, maiúsculas, números e símbolos.",
-    );
-  }
   return problems;
 }
+
 
 /**
  * Palavra-passe inicial do administrador.

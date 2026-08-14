@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Card, InfoNote } from "@/components/ui";
 import { hasAnyUser } from "@/server/onboarding";
@@ -33,6 +34,19 @@ export default async function InstalarPage() {
           recuperação por email ainda não está configurada.
         </InfoNote>
       </div>
+
+      {/*
+        Sem isto, quem chegasse aqui só via "criar" e não percebia onde era o
+        login — foi exatamente a confusão que aconteceu. Enquanto não houver
+        contas, `/entrar` reencaminha para cá; assim que houver, leva mesmo
+        ao início de sessão.
+      */}
+      <p className="mt-5 text-center text-xs text-muted">
+        Já tem conta?{" "}
+        <Link href="/entrar" className="text-primary hover:underline">
+          Entrar
+        </Link>
+      </p>
     </Card>
   );
 }

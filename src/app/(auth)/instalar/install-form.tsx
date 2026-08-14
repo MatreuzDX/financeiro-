@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 import { Button, ErrorBanner, Field, Input } from "@/components/ui";
+import { MIN_PASSWORD_LENGTH, PASSWORD_HINT } from "@/lib/password-rules";
 import { installAction, type FormState } from "../actions";
 
 function SubmitButton() {
@@ -50,14 +51,14 @@ export function InstallForm() {
 
       <Field
         label="Palavra-passe"
-        hint="Pelo menos 12 caracteres, misturando maiúsculas, minúsculas, números ou símbolos."
+        hint={PASSWORD_HINT}
       >
         <Input
           name="password"
           type="password"
           autoComplete="new-password"
           required
-          minLength={12}
+          minLength={MIN_PASSWORD_LENGTH}
         />
       </Field>
 
@@ -67,7 +68,7 @@ export function InstallForm() {
           type="password"
           autoComplete="new-password"
           required
-          minLength={12}
+          minLength={MIN_PASSWORD_LENGTH}
         />
       </Field>
 
