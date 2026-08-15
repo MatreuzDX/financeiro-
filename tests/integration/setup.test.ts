@@ -2,9 +2,9 @@
  * Configuração inicial guiada, contra o Postgres real.
  *
  * O que interessa provar aqui não é que os campos aparecem no ecrã — é que
- * as respostas viram os dados certos: conta com o saldo indicado, veículo
- * com os quilómetros, e orçamento do mês nas categorias que a pessoa
- * preencheu. E, sobretudo, que NADA é inventado.
+ * as respostas viram os dados certos, e que o assistente serve vidas
+ * diferentes: quem tem ordenado, quem tem três fontes, quem vive com a
+ * família e não paga renda, quem anda de autocarro.
  *
  * Precisa de `npm run db:start` a correr.
  */
@@ -56,6 +56,17 @@ async function novoWorkspace(label: string): Promise<SessionUser> {
   };
 }
 
+async function linhasDoOrcamento(workspaceId: string) {
+  const mes = startOfMonth(todayIso("Europe/Lisbon"));
+  const budget = await prisma.budget.findFirst({
+    where: { workspaceId, month: fromIso(mes) },
+    include: { lines: { include: { category: true } } },
+  });
+  return Object.fromEntries(
+    (budget?.lines ?? []).map((l) => [l.category.name, l.plannedCents]),
+  );
+}
+
 afterAll(async () => {
   for (const workspaceId of criados) {
     await prisma.workspace.delete({ where: { id: workspaceId } }).catch(() => {});
@@ -69,17 +80,21 @@ describe("configuração inicial", () => {
     expect(await needsSetup(s.workspaceId)).toBe(true);
   });
 
-  it("cria conta, veículo e orçamento a partir das respostas", async () => {
-    const s = await novoWorkspace("completo");
+  it("entregador: veículo, custos e orçamento", async () => {
+    const s = await novoWorkspace("entregador");
 
     const resultado = await applySetup(s, {
+      perfis: ["EMPREGADO", "ENTREGAS"],
       conta: { name: "Conta à ordem", type: "BANK", openingCents: 45_000 },
       dinheiroVivoCents: 6_000,
-      rendimento: {
-        name: "Trabalho principal",
-        type: "SALARY",
-        mensalCents: 92_000,
-      },
+      poupancaCents: 100_000,
+      rendimentos: [
+        { name: "Trabalho principal", type: "SALARY", mensalCents: 92_000 },
+        { name: "Entregas", type: "DELIVERY", mensalCents: 30_000 },
+      ],
+      habitacao: "ARRENDO",
+      habitacaoCents: 50_000,
+      agregado: "SOZINHO",
       veiculo: {
         name: "Honda PCX",
         brand: "Honda",
@@ -92,75 +107,125 @@ describe("configuração inicial", () => {
         manutencaoMensalCents: 2_500,
         usaParaTrabalho: true,
       },
-      fixas: { Renda: 50_000, Internet: 3_500, Eletricidade: 4_180 },
+      creditos: [{ nome: "Crédito da mota", mensalCents: 12_000 }],
+      fixas: { Internet: 3_500, Eletricidade: 4_180 },
     });
 
-    expect(resultado.contasCriadas).toBe(2);
+    expect(resultado.contasCriadas).toBe(3); // ordem + dinheiro + poupança
+    expect(resultado.fontesCriadas).toBe(2);
     expect(resultado.veiculoCriado).toBe(true);
-    expect(resultado.fonteCriada).toBe(true);
+    expect(resultado.rendimentoMensalCents).toBe(122_000);
 
     const contas = await prisma.account.findMany({
       where: { workspaceId: s.workspaceId },
       orderBy: { sortOrder: "asc" },
+      select: { name: true, type: true, cachedBalanceCents: true },
     });
-    expect(contas.map((c) => [c.name, c.openingCents, c.cachedBalanceCents])).toEqual([
-      ["Conta à ordem", 45_000, 45_000],
-      ["Dinheiro", 6_000, 6_000],
+    expect(contas).toEqual([
+      { name: "Conta à ordem", type: "BANK", cachedBalanceCents: 45_000 },
+      { name: "Dinheiro", type: "CASH", cachedBalanceCents: 6_000 },
+      { name: "Poupança", type: "SAVINGS", cachedBalanceCents: 100_000 },
     ]);
 
-    const veiculo = await prisma.vehicle.findFirstOrThrow({
-      where: { workspaceId: s.workspaceId },
-    });
-    expect(veiculo.name).toBe("Honda PCX");
-    expect(veiculo.currentMetres).toBe(24_150_000);
-    expect(veiculo.year).toBe(2016);
-
-    // Renda + Internet + Eletricidade + Combustível + Manutenção
-    expect(resultado.linhasOrcamento).toBe(5);
-    expect(resultado.totalOrcamentadoCents).toBe(
-      50_000 + 3_500 + 4_180 + 8_000 + 2_500,
-    );
-
-    const mes = startOfMonth(todayIso("Europe/Lisbon"));
-    const budget = await prisma.budget.findFirstOrThrow({
-      where: { workspaceId: s.workspaceId, month: fromIso(mes) },
-      include: { lines: { include: { category: true } } },
-    });
-    const porNome = Object.fromEntries(
-      budget.lines.map((l) => [l.category.name, l.plannedCents]),
-    );
-    expect(porNome["Renda"]).toBe(50_000);
-    expect(porNome["Combustível"]).toBe(8_000);
-    expect(porNome["Manutenção"]).toBe(2_500);
-
-    // Deixa de precisar de configuração.
-    expect(await needsSetup(s.workspaceId)).toBe(false);
+    const orcamento = await linhasDoOrcamento(s.workspaceId);
+    expect(orcamento["Renda"]).toBe(50_000);
+    expect(orcamento["Combustível"]).toBe(8_000);
+    expect(orcamento["Manutenção"]).toBe(2_500);
+    expect(orcamento["Créditos e empréstimos"]).toBe(12_000);
+    expect(orcamento["Internet"]).toBe(3_500);
+    expect(orcamento["Prestação da casa"]).toBeUndefined();
   });
 
-  it("NÃO lança o ordenado como receita — o dinheiro só entra quando entra", async () => {
+  it("quem vive com família não fica com linha de habitação", async () => {
+    const s = await novoWorkspace("familia");
+
+    await applySetup(s, {
+      perfis: ["ESTUDANTE"],
+      conta: { name: "Conta", type: "BANK", openingCents: 20_000 },
+      rendimentos: [
+        { name: "Bolsa", type: "OTHER", mensalCents: 25_000 },
+      ],
+      habitacao: "FAMILIA",
+      // Mesmo que venha um valor, não há categoria onde o pôr — e não se
+      // inventa uma renda a quem não paga renda.
+      habitacaoCents: 40_000,
+      agregado: "FILHOS",
+      transportesMensalCents: 4_000,
+      fixas: { Telefone: 1_500 },
+    });
+
+    const orcamento = await linhasDoOrcamento(s.workspaceId);
+    expect(orcamento["Renda"]).toBeUndefined();
+    expect(orcamento["Prestação da casa"]).toBeUndefined();
+    expect(orcamento["Transportes"]).toBe(4_000);
+    expect(orcamento["Telefone"]).toBe(1_500);
+  });
+
+  it("crédito à habitação vai para a categoria certa, não para Renda", async () => {
+    const s = await novoWorkspace("credito-casa");
+
+    await applySetup(s, {
+      conta: { name: "Conta", type: "BANK", openingCents: 0 },
+      habitacao: "CREDITO",
+      habitacaoCents: 62_000,
+      fixas: {},
+    });
+
+    const orcamento = await linhasDoOrcamento(s.workspaceId);
+    expect(orcamento["Prestação da casa"]).toBe(62_000);
+    expect(orcamento["Renda"]).toBeUndefined();
+  });
+
+  it("vários créditos somam numa só linha", async () => {
+    const s = await novoWorkspace("creditos");
+
+    await applySetup(s, {
+      conta: { name: "Conta", type: "BANK", openingCents: 0 },
+      creditos: [
+        { nome: "Cartão", mensalCents: 5_000 },
+        { nome: "Carro", mensalCents: 18_000 },
+        { nome: "Pessoal", mensalCents: 7_500 },
+      ],
+      fixas: {},
+    });
+
+    const orcamento = await linhasDoOrcamento(s.workspaceId);
+    expect(orcamento["Créditos e empréstimos"]).toBe(30_500);
+  });
+
+  it("cria a categoria em falta em vez de deitar a resposta fora", async () => {
+    const s = await novoWorkspace("categoria-nova");
+
+    await prisma.category.deleteMany({
+      where: { workspaceId: s.workspaceId, name: "Animais" },
+    });
+
+    await applySetup(s, {
+      conta: { name: "Conta", type: "BANK", openingCents: 0 },
+      fixas: { Animais: 4_500 },
+    });
+
+    const orcamento = await linhasDoOrcamento(s.workspaceId);
+    expect(orcamento["Animais"]).toBe(4_500);
+  });
+
+  it("NÃO lança os rendimentos como receita — o dinheiro só entra quando entra", async () => {
     const s = await novoWorkspace("sem-receita");
 
     await applySetup(s, {
       conta: { name: "Conta à ordem", type: "BANK", openingCents: 10_000 },
-      rendimento: {
-        name: "Trabalho principal",
-        type: "SALARY",
-        mensalCents: 92_000,
-      },
+      rendimentos: [
+        { name: "Trabalho principal", type: "SALARY", mensalCents: 92_000 },
+      ],
       fixas: {},
     });
 
-    // Existe a fonte de rendimento…
-    const fontes = await prisma.incomeSource.count({
-      where: { workspaceId: s.workspaceId },
-    });
-    expect(fontes).toBe(1);
-
-    // …mas nenhum movimento foi lançado, e o saldo é só o que foi indicado.
-    const movimentos = await prisma.transaction.count({
-      where: { workspaceId: s.workspaceId },
-    });
-    expect(movimentos).toBe(0);
+    expect(
+      await prisma.incomeSource.count({ where: { workspaceId: s.workspaceId } }),
+    ).toBe(1);
+    expect(
+      await prisma.transaction.count({ where: { workspaceId: s.workspaceId } }),
+    ).toBe(0);
 
     const conta = await prisma.account.findFirstOrThrow({
       where: { workspaceId: s.workspaceId },
@@ -173,12 +238,11 @@ describe("configuração inicial", () => {
 
     const resultado = await applySetup(s, {
       conta: { name: "Carteira", type: "CASH", openingCents: 2_500 },
-      rendimento: null,
-      veiculo: null,
       fixas: {},
     });
 
     expect(resultado.contasCriadas).toBe(1);
+    expect(resultado.fontesCriadas).toBe(0);
     expect(resultado.veiculoCriado).toBe(false);
     expect(resultado.linhasOrcamento).toBe(0);
     expect(await needsSetup(s.workspaceId)).toBe(false);
@@ -188,6 +252,9 @@ describe("configuração inicial", () => {
     const s = await novoWorkspace("repetido");
     const entrada = {
       conta: { name: "Conta à ordem", type: "BANK" as const, openingCents: 30_000 },
+      rendimentos: [
+        { name: "Ordenado", type: "SALARY" as const, mensalCents: 90_000 },
+      ],
       veiculo: {
         name: "Honda PCX",
         type: "SCOOTER" as const,
@@ -195,20 +262,23 @@ describe("configuração inicial", () => {
         currentMetres: 1_000,
         combustivelMensalCents: 8_000,
       },
-      fixas: { Renda: 50_000 },
+      habitacao: "ARRENDO" as const,
+      habitacaoCents: 50_000,
+      fixas: {},
     };
 
     await applySetup(s, entrada);
     const segunda = await applySetup(s, entrada);
 
     expect(segunda.contasCriadas).toBe(0);
+    expect(segunda.fontesCriadas).toBe(0);
     expect(segunda.veiculoCriado).toBe(false);
 
     expect(
       await prisma.account.count({ where: { workspaceId: s.workspaceId } }),
     ).toBe(1);
     expect(
-      await prisma.vehicle.count({ where: { workspaceId: s.workspaceId } }),
+      await prisma.incomeSource.count({ where: { workspaceId: s.workspaceId } }),
     ).toBe(1);
     expect(
       await prisma.budgetLine.count({

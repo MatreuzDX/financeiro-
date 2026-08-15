@@ -46,6 +46,18 @@ export const DEFAULT_EXPENSE_CATEGORIES: SeedCategory[] = [
   { name: "Reparações", color: "#c2410c", scope: "BUSINESS" },
   { name: "Impostos", color: "#57534e", scope: "BUSINESS" },
   { name: "Estacionamento", color: "#78716c", scope: "BUSINESS" },
+  // Vidas que a lista original não servia: quem tem casa a crédito, quem
+  // tem filhos, quem paga prestações, quem tem animais. Sem uma categoria
+  // onde caiba, a despesa acaba em "Outras" e o relatório não diz nada.
+  { name: "Prestação da casa", color: "#4f46e5" },
+  { name: "Condomínio", color: "#6366f1" },
+  { name: "Seguros", color: "#0891b2" },
+  { name: "Créditos e empréstimos", color: "#be123c" },
+  { name: "Creche e escola", color: "#2563eb" },
+  { name: "Animais", color: "#ca8a04" },
+  { name: "Vestuário", color: "#db2777" },
+  { name: "Impostos e taxas", color: "#475569" },
+  { name: "Ofertas e apoios", color: "#9333ea" },
   { name: "Outras despesas", color: "#64748b" },
 ];
 
@@ -54,6 +66,10 @@ export const DEFAULT_INCOME_CATEGORIES: SeedCategory[] = [
   { name: "Entregas", color: "#10b981", scope: "BUSINESS" },
   { name: "Freelancer", color: "#059669", scope: "BUSINESS" },
   { name: "Negócio", color: "#047857", scope: "BUSINESS" },
+  { name: "Arrendamento", color: "#16a34a" },
+  { name: "Pensão ou reforma", color: "#15803d" },
+  { name: "Apoios e subsídios", color: "#4d7c0f" },
+  { name: "Bolsa de estudo", color: "#3f6212" },
   { name: "Reembolsos", color: "#84cc16" },
   { name: "Outras receitas", color: "#65a30d" },
 ];

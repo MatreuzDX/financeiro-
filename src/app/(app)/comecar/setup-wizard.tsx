@@ -6,8 +6,13 @@ import {
   ArrowLeft,
   ArrowRight,
   Bike,
+  Bus,
   Check,
-  Home,
+  CreditCard,
+  House,
+  Plus,
+  Trash2,
+  UserRound,
   Wallet,
 } from "lucide-react";
 import {
@@ -24,9 +29,23 @@ import { cn } from "@/lib/cn";
 import { formatCents, parseAmountToCents, parseKmToMetres } from "@/lib/money";
 import { completeSetupAction } from "./actions";
 
-type Pergunta = { categoria: string; pergunta: string; exemplo?: string };
+type Pergunta = {
+  categoria: string;
+  pergunta: string;
+  exemplo?: string;
+  soSe?: { agregado?: string[]; perfis?: string[] };
+};
+type Opcao = { id: string; label: string; hint?: string };
 
-const PASSOS = ["Dinheiro", "Rendimento", "Veículo", "Contas fixas", "Resumo"] as const;
+const PASSOS = [
+  "Perfil",
+  "Dinheiro",
+  "Rendimentos",
+  "Casa",
+  "Transporte",
+  "Contas fixas",
+  "Resumo",
+] as const;
 
 /** Converte o que a pessoa escreveu; vazio ou inválido → null. */
 function euros(valor: string): number | null {
@@ -35,11 +54,32 @@ function euros(valor: string): number | null {
   return parseAmountToCents(t);
 }
 
+type Rendimento = { id: number; nome: string; tipo: string; mensal: string };
+type Credito = { id: number; nome: string; mensal: string };
+
+/** Sugestões de fonte de rendimento a partir do perfil escolhido. */
+const SUGESTAO_POR_PERFIL: Record<string, { nome: string; tipo: string }> = {
+  EMPREGADO: { nome: "Trabalho principal", tipo: "SALARY" },
+  INDEPENDENTE: { nome: "Trabalho independente", tipo: "FREELANCE" },
+  ENTREGAS: { nome: "Entregas", tipo: "DELIVERY" },
+  NEGOCIO: { nome: "Negócio", tipo: "BUSINESS" },
+  ESTUDANTE: { nome: "Bolsa ou apoio", tipo: "OTHER" },
+  REFORMADO: { nome: "Pensão", tipo: "OTHER" },
+};
+
+let proximoId = 1;
+
 export function SetupWizard({
   perguntasFixas,
+  perfis,
+  habitacoes,
+  agregados,
   nome,
 }: {
   perguntasFixas: Pergunta[];
+  perfis: readonly Opcao[];
+  habitacoes: readonly Opcao[];
+  agregados: readonly Opcao[];
   nome: string;
 }) {
   const router = useRouter();
@@ -47,70 +87,141 @@ export function SetupWizard({
   const [erro, setErro] = useState<string | null>(null);
   const [pendente, iniciar] = useTransition();
 
-  // ── Passo 1: dinheiro ──────────────────────────────────────────────────
+  // ── 1. Perfil ──────────────────────────────────────────────────────────
+  const [perfisEscolhidos, setPerfisEscolhidos] = useState<string[]>([]);
+
+  // ── 2. Dinheiro ────────────────────────────────────────────────────────
   const [contaNome, setContaNome] = useState("Conta à ordem");
   const [contaTipo, setContaTipo] = useState("BANK");
   const [contaSaldo, setContaSaldo] = useState("");
   const [dinheiroVivo, setDinheiroVivo] = useState("");
+  const [poupanca, setPoupanca] = useState("");
 
-  // ── Passo 2: rendimento ────────────────────────────────────────────────
-  const [temRendimento, setTemRendimento] = useState(true);
-  const [fonteNome, setFonteNome] = useState("Trabalho principal");
-  const [fonteTipo, setFonteTipo] = useState("SALARY");
-  const [fonteMensal, setFonteMensal] = useState("");
+  // ── 3. Rendimentos ─────────────────────────────────────────────────────
+  const [rendimentos, setRendimentos] = useState<Rendimento[]>([]);
 
-  // ── Passo 3: veículo ───────────────────────────────────────────────────
+  // ── 4. Casa ────────────────────────────────────────────────────────────
+  const [habitacao, setHabitacao] = useState<string | null>(null);
+  const [habitacaoValor, setHabitacaoValor] = useState("");
+  const [agregado, setAgregado] = useState<string | null>(null);
+
+  // ── 5. Transporte ──────────────────────────────────────────────────────
   const [temVeiculo, setTemVeiculo] = useState<boolean | null>(null);
+  const [transportes, setTransportes] = useState("");
   const [vNome, setVNome] = useState("");
   const [vMarca, setVMarca] = useState("");
   const [vModelo, setVModelo] = useState("");
   const [vAno, setVAno] = useState("");
-  const [vTipo, setVTipo] = useState("SCOOTER");
+  const [vTipo, setVTipo] = useState("CAR");
   const [vCombustivel, setVCombustivel] = useState("PETROL");
   const [vKm, setVKm] = useState("");
   const [vCombMensal, setVCombMensal] = useState("");
   const [vManutMensal, setVManutMensal] = useState("");
   const [vTrabalho, setVTrabalho] = useState(false);
 
-  // ── Passo 4: contas fixas ──────────────────────────────────────────────
+  // ── 6. Contas fixas e créditos ─────────────────────────────────────────
   const [fixas, setFixas] = useState<Record<string, string>>({});
+  const [creditos, setCreditos] = useState<Credito[]>([]);
+
+  const fazEntregas = perfisEscolhidos.includes("ENTREGAS");
+
+  /** Só as perguntas que fazem sentido para quem está a responder. */
+  const perguntasVisiveis = useMemo(
+    () =>
+      perguntasFixas.filter((p) => {
+        if (!p.soSe) return true;
+        if (p.soSe.agregado && !p.soSe.agregado.includes(agregado ?? "")) {
+          return false;
+        }
+        if (
+          p.soSe.perfis &&
+          !p.soSe.perfis.some((x) => perfisEscolhidos.includes(x))
+        ) {
+          return false;
+        }
+        return true;
+      }),
+    [perguntasFixas, agregado, perfisEscolhidos],
+  );
+
+  const rendimentoTotal = useMemo(
+    () => rendimentos.reduce((s, r) => s + (euros(r.mensal) ?? 0), 0),
+    [rendimentos],
+  );
 
   const totalFixas = useMemo(() => {
     let soma = 0;
     for (const v of Object.values(fixas)) soma += euros(v) ?? 0;
+    soma += euros(habitacaoValor) ?? 0;
+    soma += euros(transportes) ?? 0;
     soma += euros(vCombMensal) ?? 0;
     soma += euros(vManutMensal) ?? 0;
+    for (const c of creditos) soma += euros(c.mensal) ?? 0;
     return soma;
-  }, [fixas, vCombMensal, vManutMensal]);
+  }, [fixas, habitacaoValor, transportes, vCombMensal, vManutMensal, creditos]);
 
-  const rendimentoCents = euros(fonteMensal) ?? 0;
-  const sobra = rendimentoCents - totalFixas;
+  const sobra = rendimentoTotal - totalFixas;
+
+  function alternarPerfil(id: string) {
+    setPerfisEscolhidos((atual) => {
+      const novo = atual.includes(id)
+        ? atual.filter((p) => p !== id)
+        : [...atual, id];
+
+      // Ao escolher um perfil, propõe já a fonte de rendimento
+      // correspondente — sem obrigar, dá para apagar.
+      const sugestao = SUGESTAO_POR_PERFIL[id];
+      if (sugestao && !atual.includes(id)) {
+        setRendimentos((rs) =>
+          rs.some((r) => r.nome === sugestao.nome)
+            ? rs
+            : [
+                ...rs,
+                {
+                  id: proximoId++,
+                  nome: sugestao.nome,
+                  tipo: sugestao.tipo,
+                  mensal: "",
+                },
+              ],
+        );
+      }
+      if (id === "ENTREGAS" && !atual.includes(id)) {
+        setTemVeiculo(true);
+        setVTipo("SCOOTER");
+        setVTrabalho(true);
+      }
+      return novo;
+    });
+  }
 
   function seguinte() {
     setErro(null);
 
-    if (passo === 0) {
+    if (passo === 1) {
       if (contaNome.trim() === "") {
         setErro("Dê um nome à conta.");
         return;
       }
-      if (contaSaldo.trim() !== "" && euros(contaSaldo) === null) {
-        setErro("O saldo não é um valor válido. Exemplo: 450,00");
-        return;
-      }
-      if (dinheiroVivo.trim() !== "" && euros(dinheiroVivo) === null) {
-        setErro("O dinheiro em carteira não é um valor válido.");
-        return;
+      for (const [rotulo, valor] of [
+        ["saldo", contaSaldo],
+        ["dinheiro em carteira", dinheiroVivo],
+        ["poupança", poupanca],
+      ] as const) {
+        if (valor.trim() !== "" && euros(valor) === null) {
+          setErro(`O valor do ${rotulo} não é válido. Exemplo: 450,00`);
+          return;
+        }
       }
     }
 
-    if (passo === 2 && temVeiculo) {
+    if (passo === 4 && temVeiculo) {
       if (vNome.trim() === "") {
-        setErro("Dê um nome ao veículo. Por exemplo: Honda PCX.");
+        setErro("Dê um nome ao veículo. Por exemplo: o meu carro.");
         return;
       }
       if (vKm.trim() !== "" && parseKmToMetres(vKm) === null) {
-        setErro("Os quilómetros não são um valor válido. Exemplo: 24150");
+        setErro("Os quilómetros não são um valor válido. Exemplo: 84500");
         return;
       }
     }
@@ -132,48 +243,54 @@ export function SetupWizard({
       if (c && c > 0) fixasCents[categoria] = c;
     }
 
-    const payload = {
-      conta: {
-        name: contaNome.trim(),
-        type: contaTipo,
-        openingCents: euros(contaSaldo) ?? 0,
-      },
-      dinheiroVivoCents: euros(dinheiroVivo),
-      rendimento: temRendimento
-        ? {
-            name: fonteNome.trim() || "Trabalho principal",
-            type: fonteTipo,
-            mensalCents: euros(fonteMensal),
-          }
-        : null,
-      veiculo:
-        temVeiculo && vNome.trim() !== ""
-          ? {
-              name: vNome.trim(),
-              brand: vMarca.trim() || null,
-              model: vModelo.trim() || null,
-              year: vAno.trim() ? Number(vAno) : null,
-              type: vTipo,
-              fuelType: vCombustivel,
-              currentMetres: parseKmToMetres(vKm) ?? 0,
-              combustivelMensalCents: euros(vCombMensal),
-              manutencaoMensalCents: euros(vManutMensal),
-              usaParaTrabalho: vTrabalho,
-            }
-          : null,
-      fixas: fixasCents,
-    };
-
     iniciar(async () => {
-      const resultado = await completeSetupAction(payload);
+      const resultado = await completeSetupAction({
+        perfis: perfisEscolhidos,
+        conta: {
+          name: contaNome.trim(),
+          type: contaTipo,
+          openingCents: euros(contaSaldo) ?? 0,
+        },
+        dinheiroVivoCents: euros(dinheiroVivo),
+        poupancaCents: euros(poupanca),
+        rendimentos: rendimentos
+          .filter((r) => r.nome.trim() !== "")
+          .map((r) => ({
+            name: r.nome.trim(),
+            type: r.tipo,
+            mensalCents: euros(r.mensal),
+          })),
+        habitacao,
+        habitacaoCents: euros(habitacaoValor),
+        agregado,
+        veiculo:
+          temVeiculo && vNome.trim() !== ""
+            ? {
+                name: vNome.trim(),
+                brand: vMarca.trim() || null,
+                model: vModelo.trim() || null,
+                year: vAno.trim() ? Number(vAno) : null,
+                type: vTipo,
+                fuelType: vCombustivel,
+                currentMetres: parseKmToMetres(vKm) ?? 0,
+                combustivelMensalCents: euros(vCombMensal),
+                manutencaoMensalCents: euros(vManutMensal),
+                usaParaTrabalho: vTrabalho,
+              }
+            : null,
+        transportesMensalCents: euros(transportes),
+        creditos: creditos
+          .filter((c) => c.nome.trim() !== "" && (euros(c.mensal) ?? 0) > 0)
+          .map((c) => ({ nome: c.nome.trim(), mensalCents: euros(c.mensal)! })),
+        fixas: fixasCents,
+      });
       if (resultado?.error) setErro(resultado.error);
     });
   }
 
   return (
     <div className="space-y-4">
-      {/* Progresso — saber onde se está e quanto falta */}
-      <ol className="flex items-center gap-1.5" aria-label="Progresso">
+      <ol className="flex items-center gap-1" aria-label="Progresso">
         {PASSOS.map((nomePasso, i) => (
           <li key={nomePasso} className="flex-1">
             <div
@@ -183,22 +300,86 @@ export function SetupWizard({
               )}
               aria-current={i === passo ? "step" : undefined}
             />
-            <span
-              className={cn(
-                "mt-1 block truncate text-[10px]",
-                i === passo ? "font-medium text-ink" : "text-faint",
-              )}
-            >
-              {nomePasso}
-            </span>
           </li>
         ))}
       </ol>
+      <p className="text-[11px] text-muted">
+        Passo {passo + 1} de {PASSOS.length} · {PASSOS[passo]}
+      </p>
 
       {erro ? <ErrorBanner>{erro}</ErrorBanner> : null}
 
-      {/* ── Passo 1 ─────────────────────────────────────────────────────── */}
+      {/* ── 1. Perfil ───────────────────────────────────────────────────── */}
       {passo === 0 ? (
+        <Card className="animate-rise space-y-4">
+          <header>
+            <div className="mb-2 flex items-center gap-2 text-primary">
+              <UserRound size={18} aria-hidden />
+              <h2 className="text-sm font-semibold">Como é a sua vida agora?</h2>
+            </div>
+            <p className="text-xs leading-relaxed text-muted">
+              Escolha tudo o que se aplicar. Serve para não lhe fazer
+              perguntas que não têm nada a ver consigo — e para propor as
+              coisas certas a seguir.
+            </p>
+          </header>
+
+          <div className="space-y-2">
+            {perfis.map((p) => {
+              const ativo = perfisEscolhidos.includes(p.id);
+              return (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => alternarPerfil(p.id)}
+                  aria-pressed={ativo}
+                  className={cn(
+                    "flex w-full items-start gap-3 rounded-xl border p-3 text-left transition-colors",
+                    ativo
+                      ? "border-primary bg-primary-soft"
+                      : "border-line bg-surface hover:bg-surface-hover",
+                  )}
+                >
+                  <span
+                    className={cn(
+                      "mt-0.5 grid h-4 w-4 shrink-0 place-items-center rounded border",
+                      ativo
+                        ? "border-primary bg-primary text-primary-fg"
+                        : "border-line-strong",
+                    )}
+                    aria-hidden
+                  >
+                    {ativo ? <Check size={11} /> : null}
+                  </span>
+                  <span className="min-w-0">
+                    <span
+                      className={cn(
+                        "block text-sm",
+                        ativo ? "font-medium text-primary" : "text-ink",
+                      )}
+                    >
+                      {p.label}
+                    </span>
+                    {p.hint ? (
+                      <span className="block text-[11px] text-muted">
+                        {p.hint}
+                      </span>
+                    ) : null}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          <InfoNote>
+            Nada disto fica fixo. Se a sua vida mudar — muda-se aqui, em
+            Definições → Rever a configuração.
+          </InfoNote>
+        </Card>
+      ) : null}
+
+      {/* ── 2. Dinheiro ─────────────────────────────────────────────────── */}
+      {passo === 1 ? (
         <Card className="animate-rise space-y-4">
           <header>
             <div className="mb-2 flex items-center gap-2 text-primary">
@@ -233,7 +414,7 @@ export function SetupWizard({
 
           <Field
             label="Saldo atual"
-            hint="Se não souber ao certo, ponha um valor aproximado — dá para corrigir depois."
+            hint="Se não souber ao certo, ponha um valor aproximado — corrige-se depois."
           >
             <MoneyInput
               value={contaSaldo}
@@ -247,93 +428,232 @@ export function SetupWizard({
               onChange={(e) => setDinheiroVivo(e.target.value)}
             />
           </Field>
+
+          <Field
+            label="Tem algum dinheiro de lado?"
+            hint="Cria uma conta Poupança à parte, para não se misturar com o do dia a dia."
+          >
+            <MoneyInput
+              value={poupanca}
+              onChange={(e) => setPoupanca(e.target.value)}
+            />
+          </Field>
         </Card>
       ) : null}
 
-      {/* ── Passo 2 ─────────────────────────────────────────────────────── */}
-      {passo === 1 ? (
+      {/* ── 3. Rendimentos ──────────────────────────────────────────────── */}
+      {passo === 2 ? (
         <Card className="animate-rise space-y-4">
           <header>
             <h2 className="text-sm font-semibold text-ink">
               De onde vem o seu dinheiro?
             </h2>
             <p className="mt-1 text-xs leading-relaxed text-muted">
-              Pode acrescentar mais fontes depois — entregas, freelas, um
-              negócio. Cada uma passa a ter o seu próprio histórico e lucro.
+              Pode ter várias fontes — ordenado, uns trabalhos por fora, uma
+              casa arrendada. Cada uma passa a ter o seu próprio histórico e
+              o seu próprio lucro.
             </p>
           </header>
 
-          <div className="flex gap-2">
-            <EscolhaBotao
-              ativo={temRendimento}
-              onClick={() => setTemRendimento(true)}
-            >
-              Tenho rendimento fixo
-            </EscolhaBotao>
-            <EscolhaBotao
-              ativo={!temRendimento}
-              onClick={() => setTemRendimento(false)}
-            >
-              Agora não
-            </EscolhaBotao>
+          {rendimentos.length === 0 ? (
+            <p className="rounded-xl border border-dashed border-line px-3 py-6 text-center text-xs text-muted">
+              Ainda sem fontes. Acrescente uma, ou salte este passo.
+            </p>
+          ) : null}
+
+          <div className="space-y-3">
+            {rendimentos.map((r) => (
+              <div
+                key={r.id}
+                className="space-y-3 rounded-xl border border-line bg-surface-2 p-3"
+              >
+                <div className="flex items-start gap-2">
+                  <div className="min-w-0 flex-1">
+                    <Field label="Nome">
+                      <Input
+                        value={r.nome}
+                        maxLength={60}
+                        onChange={(e) =>
+                          setRendimentos((rs) =>
+                            rs.map((x) =>
+                              x.id === r.id ? { ...x, nome: e.target.value } : x,
+                            ),
+                          )
+                        }
+                        placeholder="Trabalho principal"
+                      />
+                    </Field>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setRendimentos((rs) => rs.filter((x) => x.id !== r.id))
+                    }
+                    aria-label={`Remover ${r.nome || "fonte"}`}
+                    className="mt-6 grid h-9 w-9 shrink-0 place-items-center rounded-lg text-faint transition-colors hover:bg-negative-soft hover:text-negative"
+                  >
+                    <Trash2 size={15} aria-hidden />
+                  </button>
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <Field label="Tipo">
+                    <Select
+                      value={r.tipo}
+                      onChange={(e) =>
+                        setRendimentos((rs) =>
+                          rs.map((x) =>
+                            x.id === r.id ? { ...x, tipo: e.target.value } : x,
+                          ),
+                        )
+                      }
+                    >
+                      <option value="SALARY">Ordenado</option>
+                      <option value="DELIVERY">Entregas</option>
+                      <option value="FREELANCE">Freelancer</option>
+                      <option value="BUSINESS">Negócio</option>
+                      <option value="RENTAL">Arrendamento</option>
+                      <option value="OTHER">Outro</option>
+                    </Select>
+                  </Field>
+
+                  <Field label="Por mês, líquido" hint="Aproximado">
+                    <MoneyInput
+                      value={r.mensal}
+                      onChange={(e) =>
+                        setRendimentos((rs) =>
+                          rs.map((x) =>
+                            x.id === r.id ? { ...x, mensal: e.target.value } : x,
+                          ),
+                        )
+                      }
+                    />
+                  </Field>
+                </div>
+              </div>
+            ))}
           </div>
 
-          {temRendimento ? (
-            <>
-              <Field label="Como se chama">
-                <Input
-                  value={fonteNome}
-                  onChange={(e) => setFonteNome(e.target.value)}
-                  maxLength={60}
-                  placeholder="Trabalho principal"
-                />
-              </Field>
+          <Button
+            variant="secondary"
+            className="w-full"
+            onClick={() =>
+              setRendimentos((rs) => [
+                ...rs,
+                { id: proximoId++, nome: "", tipo: "OTHER", mensal: "" },
+              ])
+            }
+          >
+            <Plus size={16} aria-hidden />
+            Acrescentar fonte
+          </Button>
 
-              <Field label="Que tipo é">
-                <Select
-                  value={fonteTipo}
-                  onChange={(e) => setFonteTipo(e.target.value)}
-                >
-                  <option value="SALARY">Ordenado</option>
-                  <option value="DELIVERY">Entregas</option>
-                  <option value="FREELANCE">Freelancer</option>
-                  <option value="BUSINESS">Negócio</option>
-                  <option value="OTHER">Outro</option>
-                </Select>
-              </Field>
-
-              <Field
-                label="Quanto recebe por mês, líquido"
-                hint="Serve de referência para o orçamento. Não é lançado como receita — o dinheiro só entra quando entrar mesmo."
-              >
-                <MoneyInput
-                  value={fonteMensal}
-                  onChange={(e) => setFonteMensal(e.target.value)}
-                />
-              </Field>
-            </>
+          {rendimentoTotal > 0 ? (
+            <p className="text-xs text-muted">
+              Total por mês:{" "}
+              <strong className="tabular text-ink">
+                {formatCents(rendimentoTotal)}
+              </strong>
+            </p>
           ) : null}
+
+          <InfoNote>
+            Estes valores são referência para o orçamento. Não são lançados
+            como receita — o dinheiro só entra na app quando entrar mesmo.
+          </InfoNote>
         </Card>
       ) : null}
 
-      {/* ── Passo 3 ─────────────────────────────────────────────────────── */}
-      {passo === 2 ? (
+      {/* ── 4. Casa ─────────────────────────────────────────────────────── */}
+      {passo === 3 ? (
+        <Card className="animate-rise space-y-4">
+          <header>
+            <div className="mb-2 flex items-center gap-2 text-primary">
+              <House size={18} aria-hidden />
+              <h2 className="text-sm font-semibold">Onde e com quem vive?</h2>
+            </div>
+            <p className="text-xs leading-relaxed text-muted">
+              A casa costuma ser a maior despesa. E quem vive consigo muda o
+              que faz sentido perguntar a seguir.
+            </p>
+          </header>
+
+          <fieldset>
+            <legend className="mb-2 text-xs font-medium text-muted">
+              A casa onde vive
+            </legend>
+            <div className="grid grid-cols-2 gap-2">
+              {habitacoes.map((h) => (
+                <EscolhaBotao
+                  key={h.id}
+                  ativo={habitacao === h.id}
+                  onClick={() => setHabitacao(h.id)}
+                >
+                  {h.label}
+                </EscolhaBotao>
+              ))}
+            </div>
+          </fieldset>
+
+          {habitacao === "ARRENDO" || habitacao === "CREDITO" ? (
+            <Field
+              label={
+                habitacao === "ARRENDO"
+                  ? "Quanto paga de renda por mês"
+                  : "Quanto paga de prestação por mês"
+              }
+            >
+              <MoneyInput
+                value={habitacaoValor}
+                onChange={(e) => setHabitacaoValor(e.target.value)}
+              />
+            </Field>
+          ) : null}
+
+          {habitacao === "PAGA" || habitacao === "FAMILIA" ? (
+            <InfoNote>
+              Sem custo mensal de habitação, então. Não vou criar nenhuma
+              linha de orçamento para isso.
+            </InfoNote>
+          ) : null}
+
+          <fieldset>
+            <legend className="mb-2 text-xs font-medium text-muted">
+              Quem vive consigo
+            </legend>
+            <div className="grid grid-cols-2 gap-2">
+              {agregados.map((a) => (
+                <EscolhaBotao
+                  key={a.id}
+                  ativo={agregado === a.id}
+                  onClick={() => setAgregado(a.id)}
+                >
+                  {a.label}
+                </EscolhaBotao>
+              ))}
+            </div>
+          </fieldset>
+        </Card>
+      ) : null}
+
+      {/* ── 5. Transporte ───────────────────────────────────────────────── */}
+      {passo === 4 ? (
         <Card className="animate-rise space-y-4">
           <header>
             <div className="mb-2 flex items-center gap-2 text-primary">
               <Bike size={18} aria-hidden />
-              <h2 className="text-sm font-semibold">Tem algum veículo?</h2>
+              <h2 className="text-sm font-semibold">Como se desloca?</h2>
             </div>
             <p className="text-xs leading-relaxed text-muted">
-              Carro, mota ou scooter. Se usa para trabalhar, é isto que
-              permite saber quanto custa cada quilómetro — e quanto lucra de
-              verdade, em vez de só quanto recebe.
+              {fazEntregas
+                ? "Como faz entregas, o veículo é a peça central: é o que permite saber quanto custa cada quilómetro e quanto lucra de verdade."
+                : "Carro, mota, transportes públicos, a pé. Só para não ficar de fora uma despesa que costuma ser das maiores."}
             </p>
           </header>
 
           <div className="flex gap-2">
             <EscolhaBotao ativo={temVeiculo === true} onClick={() => setTemVeiculo(true)}>
-              Tenho
+              Tenho veículo
             </EscolhaBotao>
             <EscolhaBotao
               ativo={temVeiculo === false}
@@ -343,6 +663,21 @@ export function SetupWizard({
             </EscolhaBotao>
           </div>
 
+          {temVeiculo === false ? (
+            <Field
+              label="Gasta quanto em transportes por mês?"
+              hint="Passe, bilhetes, boleias. Deixe em branco se não gastar."
+            >
+              <div className="flex items-center gap-2">
+                <Bus size={16} className="shrink-0 text-muted" aria-hidden />
+                <MoneyInput
+                  value={transportes}
+                  onChange={(e) => setTransportes(e.target.value)}
+                />
+              </div>
+            </Field>
+          ) : null}
+
           {temVeiculo ? (
             <>
               <Field label="Como lhe chama" hint="O nome que usa no dia a dia">
@@ -350,7 +685,7 @@ export function SetupWizard({
                   value={vNome}
                   onChange={(e) => setVNome(e.target.value)}
                   maxLength={60}
-                  placeholder="Honda PCX"
+                  placeholder={fazEntregas ? "Honda PCX" : "O meu carro"}
                 />
               </Field>
 
@@ -385,9 +720,9 @@ export function SetupWizard({
                 </Field>
                 <Field label="Tipo">
                   <Select value={vTipo} onChange={(e) => setVTipo(e.target.value)}>
+                    <option value="CAR">Carro</option>
                     <option value="SCOOTER">Scooter</option>
                     <option value="MOTORCYCLE">Mota</option>
-                    <option value="CAR">Carro</option>
                     <option value="VAN">Carrinha</option>
                     <option value="BICYCLE">Bicicleta</option>
                     <option value="OTHER">Outro</option>
@@ -414,19 +749,19 @@ export function SetupWizard({
                     value={vKm}
                     onChange={(e) => setVKm(e.target.value)}
                     inputMode="decimal"
-                    placeholder="24150"
+                    placeholder="84500"
                   />
                 </Field>
               </div>
 
-              <Field label="Gasta quanto em combustível por mês?" hint="Aproximado">
+              <Field label="Combustível por mês" hint="Aproximado">
                 <MoneyInput
                   value={vCombMensal}
                   onChange={(e) => setVCombMensal(e.target.value)}
                 />
               </Field>
 
-              <Field label="E em manutenção, por mês?" hint="Opcional">
+              <Field label="Manutenção por mês" hint="Opcional">
                 <MoneyInput
                   value={vManutMensal}
                   onChange={(e) => setVManutMensal(e.target.value)}
@@ -455,43 +790,118 @@ export function SetupWizard({
         </Card>
       ) : null}
 
-      {/* ── Passo 4 ─────────────────────────────────────────────────────── */}
-      {passo === 3 ? (
-        <Card className="animate-rise space-y-4">
-          <header>
-            <div className="mb-2 flex items-center gap-2 text-primary">
-              <Home size={18} aria-hidden />
-              <h2 className="text-sm font-semibold">O que paga todos os meses?</h2>
-            </div>
-            <p className="text-xs leading-relaxed text-muted">
-              Preencha só o que souber — o resto fica em branco e acrescenta
-              quando quiser. Isto vira o orçamento deste mês.
-            </p>
-          </header>
+      {/* ── 6. Contas fixas e créditos ──────────────────────────────────── */}
+      {passo === 5 ? (
+        <>
+          <Card className="animate-rise space-y-4">
+            <header>
+              <h2 className="text-sm font-semibold text-ink">
+                O que paga todos os meses?
+              </h2>
+              <p className="mt-1 text-xs leading-relaxed text-muted">
+                Preencha só o que souber — o resto fica em branco e
+                acrescenta-se quando quiser. Isto vira o orçamento deste mês.
+              </p>
+            </header>
 
-          <div className="space-y-3">
-            {perguntasFixas.map((p) => (
-              <Field
-                key={p.categoria}
-                label={p.pergunta}
-                hint={p.exemplo}
-                className="grid grid-cols-[1fr_auto] items-center gap-3"
-              >
-                <MoneyInput
-                  value={fixas[p.categoria] ?? ""}
-                  onChange={(e) =>
-                    setFixas((f) => ({ ...f, [p.categoria]: e.target.value }))
+            <div className="space-y-3">
+              {perguntasVisiveis.map((p) => (
+                <Field
+                  key={p.categoria}
+                  label={p.pergunta}
+                  hint={p.exemplo}
+                  className="grid grid-cols-[1fr_auto] items-center gap-3"
+                >
+                  <MoneyInput
+                    value={fixas[p.categoria] ?? ""}
+                    onChange={(e) =>
+                      setFixas((f) => ({ ...f, [p.categoria]: e.target.value }))
+                    }
+                    className="w-36"
+                  />
+                </Field>
+              ))}
+            </div>
+          </Card>
+
+          <Card className="animate-rise space-y-4">
+            <header>
+              <div className="mb-2 flex items-center gap-2 text-primary">
+                <CreditCard size={18} aria-hidden />
+                <h2 className="text-sm font-semibold">
+                  Tem créditos a pagar?
+                </h2>
+              </div>
+              <p className="text-xs leading-relaxed text-muted">
+                Cartão, crédito pessoal, automóvel, estudante. Só a prestação
+                mensal — o que interessa aqui é o que sai por mês.
+              </p>
+            </header>
+
+            {creditos.map((c) => (
+              <div key={c.id} className="flex items-end gap-2">
+                <div className="min-w-0 flex-1">
+                  <Field label="Qual">
+                    <Input
+                      value={c.nome}
+                      maxLength={60}
+                      placeholder="Crédito do carro"
+                      onChange={(e) =>
+                        setCreditos((cs) =>
+                          cs.map((x) =>
+                            x.id === c.id ? { ...x, nome: e.target.value } : x,
+                          ),
+                        )
+                      }
+                    />
+                  </Field>
+                </div>
+                <div className="w-32 shrink-0">
+                  <Field label="Por mês">
+                    <MoneyInput
+                      value={c.mensal}
+                      onChange={(e) =>
+                        setCreditos((cs) =>
+                          cs.map((x) =>
+                            x.id === c.id ? { ...x, mensal: e.target.value } : x,
+                          ),
+                        )
+                      }
+                    />
+                  </Field>
+                </div>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setCreditos((cs) => cs.filter((x) => x.id !== c.id))
                   }
-                  className="w-36"
-                />
-              </Field>
+                  aria-label={`Remover ${c.nome || "crédito"}`}
+                  className="grid h-11 w-10 shrink-0 place-items-center rounded-lg text-faint transition-colors hover:bg-negative-soft hover:text-negative"
+                >
+                  <Trash2 size={15} aria-hidden />
+                </button>
+              </div>
             ))}
-          </div>
-        </Card>
+
+            <Button
+              variant="secondary"
+              className="w-full"
+              onClick={() =>
+                setCreditos((cs) => [
+                  ...cs,
+                  { id: proximoId++, nome: "", mensal: "" },
+                ])
+              }
+            >
+              <Plus size={16} aria-hidden />
+              {creditos.length === 0 ? "Tenho um crédito" : "Acrescentar outro"}
+            </Button>
+          </Card>
+        </>
       ) : null}
 
-      {/* ── Passo 5: resumo ─────────────────────────────────────────────── */}
-      {passo === 4 ? (
+      {/* ── 7. Resumo ───────────────────────────────────────────────────── */}
+      {passo === 6 ? (
         <Card className="animate-rise space-y-4">
           <header>
             <h2 className="text-sm font-semibold text-ink">
@@ -513,20 +923,31 @@ export function SetupWizard({
                 valor={formatCents(euros(dinheiroVivo)!)}
               />
             ) : null}
-            {temRendimento ? (
+            {euros(poupanca) ? (
               <LinhaResumo
-                rotulo={fonteNome || "Rendimento"}
-                valor={
-                  rendimentoCents > 0
-                    ? `${formatCents(rendimentoCents)} / mês`
-                    : "sem valor indicado"
-                }
+                rotulo="Poupança"
+                valor={formatCents(euros(poupanca)!)}
               />
             ) : null}
+            {rendimentos
+              .filter((r) => r.nome.trim())
+              .map((r) => (
+                <LinhaResumo
+                  key={r.id}
+                  rotulo={r.nome}
+                  valor={
+                    euros(r.mensal)
+                      ? `${formatCents(euros(r.mensal)!)} / mês`
+                      : "sem valor indicado"
+                  }
+                />
+              ))}
             {temVeiculo && vNome.trim() ? (
               <LinhaResumo
                 rotulo={vNome}
-                valor={[vMarca, vModelo, vAno].filter(Boolean).join(" ") || "veículo"}
+                valor={
+                  [vMarca, vModelo, vAno].filter(Boolean).join(" ") || "veículo"
+                }
               />
             ) : null}
             <LinhaResumo
@@ -539,10 +960,10 @@ export function SetupWizard({
             />
           </ul>
 
-          {rendimentoCents > 0 && totalFixas > 0 ? (
+          {rendimentoTotal > 0 && totalFixas > 0 ? (
             <div
               className={cn(
-                "rounded-xl p-3 text-sm",
+                "rounded-xl p-3 text-sm leading-relaxed",
                 sobra >= 0
                   ? "bg-positive-soft text-positive"
                   : "bg-negative-soft text-negative",
@@ -552,14 +973,15 @@ export function SetupWizard({
                 <>
                   Depois das contas fixas, sobram{" "}
                   <strong className="tabular">{formatCents(sobra)}</strong> por
-                  mês.
+                  mês para o resto — comida fora, imprevistos, poupança.
                 </>
               ) : (
                 <>
                   As contas fixas somam{" "}
                   <strong className="tabular">{formatCents(-sobra)}</strong> a
-                  mais do que o rendimento indicado. Vale a pena confirmar os
-                  valores.
+                  mais do que o rendimento indicado. Pode ser um valor mal
+                  metido, ou pode ser real — de qualquer forma, vale a pena
+                  olhar com atenção.
                 </>
               )}
             </div>
@@ -626,7 +1048,7 @@ function EscolhaBotao({
       onClick={onClick}
       aria-pressed={ativo}
       className={cn(
-        "flex-1 rounded-xl border px-3 py-2.5 text-xs font-medium transition-colors",
+        "min-h-11 flex-1 rounded-xl border px-3 text-xs font-medium transition-colors",
         ativo
           ? "border-primary bg-primary-soft text-primary"
           : "border-line bg-surface text-muted hover:text-ink",
