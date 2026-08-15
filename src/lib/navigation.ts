@@ -17,6 +17,7 @@ import {
   ChartColumn,
   CreditCard,
   House,
+  Lightbulb,
   Settings,
   Tags,
   Target,
@@ -34,6 +35,7 @@ export type NavItem = {
 
 export const MAIN_NAV: NavItem[] = [
   { href: "/", label: "Início", Icon: House },
+  { href: "/analise", label: "Análise", Icon: Lightbulb },
   { href: "/movimentos", label: "Movimentos", Icon: ArrowLeftRight },
   { href: "/receitas", label: "Receitas", Icon: TrendingUp },
   { href: "/despesas", label: "Despesas", Icon: TrendingDown },

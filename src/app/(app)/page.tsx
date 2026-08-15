@@ -1,5 +1,12 @@
 import Link from "next/link";
-import { ArrowRight, Bike, TrendingDown, TrendingUp, Wallet } from "lucide-react";
+import {
+  ArrowRight,
+  Bike,
+  Lightbulb,
+  TrendingDown,
+  TrendingUp,
+  Wallet,
+} from "lucide-react";
 import { requireSession } from "@/server/auth/guard";
 import {
   getByCategory,
@@ -172,6 +179,32 @@ export default async function DashboardPage({
           Icon={Wallet}
         />
       </div>
+
+      {/*
+        Entrada para a Análise. Está aqui, logo a seguir aos números, porque
+        é aqui que a pergunta nasce: "e isto é bom ou mau?". Escondida num
+        menu, ninguém lá ia.
+      */}
+      <Link
+        href="/analise"
+        className="animate-rise flex items-center gap-3 rounded-2xl border border-line bg-surface p-4 transition-colors hover:bg-surface-hover"
+      >
+        <span
+          className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-primary-soft text-primary"
+          aria-hidden
+        >
+          <Lightbulb size={17} />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-sm font-medium text-ink">
+            O que estes números querem dizer
+          </span>
+          <span className="block text-xs text-muted">
+            Análise em palavras, com o que vale a pena fazer a seguir
+          </span>
+        </span>
+        <ArrowRight size={16} className="shrink-0 text-faint" aria-hidden />
+      </Link>
 
       {overBudget.length > 0 ? (
         <Card className="animate-rise border-warning/40 bg-warning-soft">
