@@ -41,7 +41,14 @@ export type AuditAction =
   | "fuel.created"
   | "workjob.created"
   | "workjob.deleted"
-  | "budget.updated";
+  | "budget.updated"
+  | "setup.completed"
+  | "recurring.created"
+  | "recurring.updated"
+  | "recurring.deleted"
+  | "goal.created"
+  | "goal.updated"
+  | "goal.contribution";
 
 const FORBIDDEN_KEYS = /pass|senha|token|secret|hash|cookie|authorization/i;
 
@@ -122,4 +129,10 @@ export const AUDIT_LABELS: Record<string, string> = {
   "workjob.created": "Trabalho registado",
   "workjob.deleted": "Trabalho apagado",
   "budget.updated": "Orçamento alterado",
+  "recurring.created": "Recorrência criada",
+  "recurring.updated": "Recorrência alterada",
+  "recurring.deleted": "Recorrência apagada",
+  "goal.created": "Meta criada",
+  "goal.updated": "Meta alterada",
+  "goal.contribution": "Contribuição para meta",
 };

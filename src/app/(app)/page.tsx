@@ -28,6 +28,8 @@ import {
   percentOf,
 } from "@/lib/money";
 import { needsSetup } from "@/server/setup";
+import { gerarOcorrencias, listarVencimentos } from "@/server/recurring";
+import { cn } from "@/lib/cn";
 import {
   Card,
   CardHeader,
@@ -85,6 +87,15 @@ export default async function DashboardPage({
   ]);
 
   const porConfigurar = await needsSetup(session.workspaceId);
+
+  // Gera as ocorrências em falta e traz o que está para vir. Sem cron: corre
+  // quando alguém abre o início, que é a página que toda a gente abre.
+  await gerarOcorrencias(session.workspaceId, session.timezone);
+  const vencimentos = await listarVencimentos(
+    session.workspaceId,
+    session.timezone,
+    14,
+  );
 
   const vehicle = vehicles[0]
     ? await getVehicleStats(session.workspaceId, vehicles[0].id, range)
@@ -205,6 +216,57 @@ export default async function DashboardPage({
         </span>
         <ArrowRight size={16} className="shrink-0 text-faint" aria-hidden />
       </Link>
+
+      {/* ── O que vem aí, antes de vir ─────────────────────────────────── */}
+      {vencimentos.length > 0 ? (
+        <Card
+          className={cn(
+            "animate-rise",
+            vencimentos.some((v) => v.atrasada)
+              ? "border-warning/40 bg-warning-soft"
+              : "",
+          )}
+        >
+          <CardHeader
+            title={
+              vencimentos.some((v) => v.atrasada)
+                ? "Contas por pagar"
+                : "Vence nos próximos dias"
+            }
+            action={
+              <Link
+                href="/recorrentes"
+                className="text-xs font-medium text-primary hover:underline"
+              >
+                Ver todas
+              </Link>
+            }
+          />
+          <ul className="space-y-1.5">
+            {vencimentos.slice(0, 4).map((v) => (
+              <li
+                key={v.id}
+                className="flex items-baseline justify-between gap-2 text-xs"
+              >
+                <span className="truncate text-ink">
+                  {v.description}
+                  <span className="text-muted">
+                    {" · "}
+                    {v.atrasada
+                      ? `há ${Math.abs(v.diasAteVencer)} dia${Math.abs(v.diasAteVencer) === 1 ? "" : "s"}`
+                      : v.diasAteVencer === 0
+                        ? "hoje"
+                        : `em ${v.diasAteVencer} dia${v.diasAteVencer === 1 ? "" : "s"}`}
+                  </span>
+                </span>
+                <span className="tabular shrink-0 font-medium text-ink">
+                  {formatCents(v.amountCents)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </Card>
+      ) : null}
 
       {overBudget.length > 0 ? (
         <Card className="animate-rise border-warning/40 bg-warning-soft">

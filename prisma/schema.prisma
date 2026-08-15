@@ -140,8 +140,10 @@ model Workspace {
   vehicles      Vehicle[]
   mileageLogs   MileageLog[]
   fuelLogs      FuelLog[]
-  workJobs      WorkJob[]
-  budgets       Budget[]
+  workJobs       WorkJob[]
+  budgets        Budget[]
+  recurringRules RecurringRule[]
+  goals          Goal[]
 }
 
 model Membership {
@@ -202,8 +204,9 @@ model Account {
   createdAt          DateTime    @default(now())
   updatedAt          DateTime    @updatedAt
 
-  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  entries   Entry[]
+  workspace      Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  entries        Entry[]
+  recurringRules RecurringRule[]
 
   @@unique([workspaceId, name])
   @@index([workspaceId, archived, sortOrder])
@@ -226,11 +229,12 @@ model Category {
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
 
-  workspace Workspace  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  parent    Category?  @relation("CategoryTree", fields: [parentId], references: [id], onDelete: Restrict)
-  children  Category[] @relation("CategoryTree")
-  entries   Entry[]
+  workspace   Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  parent      Category?       @relation("CategoryTree", fields: [parentId], references: [id], onDelete: Restrict)
+  children    Category[]      @relation("CategoryTree")
+  entries     Entry[]
   budgetLines BudgetLine[]
+  recurringRules RecurringRule[]
 
   @@unique([workspaceId, name, type])
   @@index([workspaceId, type, archived])
@@ -262,6 +266,10 @@ model Transaction {
   incomeSourceId String?
   vehicleId      String?
   workJobId      String?
+  /// Instância gerada por uma regra de recorrência.
+  recurringId    String?
+  /// Data de vencimento, para contas a pagar e a receber.
+  dueDate        DateTime? @db.Date
 
   createdById String?
   revision    Int       @default(1)
@@ -269,10 +277,11 @@ model Transaction {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
-  workspace    Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  incomeSource IncomeSource? @relation(fields: [incomeSourceId], references: [id], onDelete: Restrict)
-  vehicle      Vehicle?      @relation(fields: [vehicleId], references: [id], onDelete: Restrict)
-  workJob      WorkJob?      @relation(fields: [workJobId], references: [id], onDelete: SetNull)
+  workspace    Workspace      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  incomeSource IncomeSource?  @relation(fields: [incomeSourceId], references: [id], onDelete: Restrict)
+  vehicle      Vehicle?       @relation(fields: [vehicleId], references: [id], onDelete: Restrict)
+  workJob      WorkJob?       @relation(fields: [workJobId], references: [id], onDelete: SetNull)
+  recurring    RecurringRule? @relation(fields: [recurringId], references: [id], onDelete: SetNull)
   entries      Entry[]
 
   @@index([workspaceId, deletedAt, date])
@@ -280,6 +289,98 @@ model Transaction {
   @@index([workspaceId, scope, date])
   @@index([workspaceId, vehicleId, date])
   @@index([workspaceId, incomeSourceId, date])
+  @@index([workspaceId, status, dueDate])
+  /// Impede que a mesma recorrência gere duas vezes o mesmo mês.
+  @@unique([recurringId, date])
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// RECORRÊNCIAS E CONTAS A PAGAR
+// ═══════════════════════════════════════════════════════════════════════════
+
+enum Frequency {
+  WEEKLY
+  MONTHLY
+  QUARTERLY
+  YEARLY
+}
+
+/// A regra. As ocorrências nascem daqui como Transaction com estado
+/// SCHEDULED — que NÃO conta para saldos nem para lucro enquanto não for
+/// confirmada. Dinheiro que ainda não saiu não pode aparecer como se tivesse
+/// saído.
+model RecurringRule {
+  id          String          @id @default(cuid())
+  workspaceId String
+  name        String
+  type        TransactionType
+  amountCents Int
+  scope       Scope           @default(PERSONAL)
+
+  accountId  String
+  categoryId String?
+
+  frequency  Frequency @default(MONTHLY)
+  /// Dia do mês (1-31). Meses curtos usam o último dia disponível.
+  dayOfMonth Int?
+  /// Dia da semana (1 = segunda … 7 = domingo), para as semanais.
+  weekday    Int?
+  /// Mês (1-12), para as anuais.
+  monthOfYear Int?
+
+  startDate DateTime  @db.Date
+  endDate   DateTime? @db.Date
+  active    Boolean   @default(true)
+  notes     String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  workspace    Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  account      Account       @relation(fields: [accountId], references: [id], onDelete: Restrict)
+  category     Category?     @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  transactions Transaction[]
+
+  @@index([workspaceId, active])
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// METAS
+// ═══════════════════════════════════════════════════════════════════════════
+
+/// Um objetivo com um valor a atingir. O progresso é a SOMA das contribuições
+/// registadas — e não o saldo de uma conta, porque a mesma conta serviria
+/// várias metas ao mesmo tempo e a mesma poupança seria contada duas vezes.
+model Goal {
+  id          String    @id @default(cuid())
+  workspaceId String
+  name        String
+  targetCents Int
+  deadline    DateTime? @db.Date
+  color       String?
+  archived    Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  workspace     Workspace          @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  contributions GoalContribution[]
+
+  @@unique([workspaceId, name])
+  @@index([workspaceId, archived])
+}
+
+model GoalContribution {
+  id          String   @id @default(cuid())
+  workspaceId String
+  goalId      String
+  date        DateTime @db.Date
+  amountCents Int
+  note        String?
+  createdAt   DateTime @default(now())
+
+  goal Goal @relation(fields: [goalId], references: [id], onDelete: Cascade)
+
+  @@index([goalId, date])
 }
 
 /// Uma linha do livro. Aponta para UMA conta OU UMA categoria, nunca ambas,
