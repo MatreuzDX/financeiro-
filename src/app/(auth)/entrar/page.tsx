@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { getSession } from "@/server/auth/session";
 import { hasAnyUser } from "@/server/onboarding";
 import { Card, SuccessBanner } from "@/components/ui";
+import { DevLoginButton } from "../dev-login-button";
 import { LoginForm } from "./login-form";
 
 export const metadata: Metadata = { title: "Entrar" };
@@ -41,6 +42,8 @@ export default async function EntrarPage({
           Esqueci-me da palavra-passe
         </Link>
       </p>
+
+      <DevLoginButton />
     </Card>
   );
 }

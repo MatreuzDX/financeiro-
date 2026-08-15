@@ -7,6 +7,7 @@ import { recordAudit } from "@/server/audit";
 import { checkPasswordStrength } from "@/server/auth/password";
 import { createSession, setSessionCookie } from "@/server/auth/session";
 import { createFirstOwner, hasAnyUser } from "@/server/onboarding";
+import { devLogin } from "@/server/auth/dev-login";
 import {
   completePasswordReset,
   login,
@@ -122,6 +123,23 @@ export async function installAction(
   // Não vai para o dashboard: vai para as perguntas. Um primeiro ecrã todo
   // vazio, sem nada onde clicar, é a forma mais rápida de alguém desistir.
   redirect("/comecar");
+}
+
+/**
+ * Entrada rápida de desenvolvimento.
+ *
+ * A verificação vive em `devLogin`, no servidor — não aqui, e muito menos
+ * no ecrã. Se alguém chamar esta ação num ambiente que não seja localhost,
+ * leva com "Indisponível." e mais nada.
+ */
+export async function devLoginAction(): Promise<void> {
+  const meta = await clientMeta();
+  const resultado = await devLogin(meta);
+  // Devolve `void` porque é usada num <form> simples, sem estado. Se for
+  // recusada — fora de localhost — volta ao login sem dizer porquê, que é
+  // o comportamento certo para uma porta que ali não devia existir.
+  if (!resultado.ok) redirect("/entrar");
+  redirect("/");
 }
 
 export async function requestResetAction(

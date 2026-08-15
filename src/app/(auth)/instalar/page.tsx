@@ -3,6 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Card, InfoNote } from "@/components/ui";
 import { hasAnyUser } from "@/server/onboarding";
+import { DevLoginButton } from "../dev-login-button";
 import { InstallForm } from "./install-form";
 
 export const metadata: Metadata = { title: "Primeira conta" };
@@ -47,6 +48,13 @@ export default async function InstalarPage() {
           Entrar
         </Link>
       </p>
+
+      {/*
+        Também aqui: numa base acabada de criar, `/entrar` reencaminha para
+        cá, por isso o botão de desenvolvimento só na página de login nunca
+        seria alcançável.
+      */}
+      <DevLoginButton />
     </Card>
   );
 }
