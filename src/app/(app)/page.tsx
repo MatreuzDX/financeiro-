@@ -90,12 +90,27 @@ export default async function DashboardPage({
 
   // Gera as ocorrências em falta e traz o que está para vir. Sem cron: corre
   // quando alguém abre o início, que é a página que toda a gente abre.
-  await gerarOcorrencias(session.workspaceId, session.timezone);
-  const vencimentos = await listarVencimentos(
-    session.workspaceId,
-    session.timezone,
-    14,
-  );
+  //
+  // ISOLADO DE PROPÓSITO. Isto é uma tarefa SECUNDÁRIA — se falhar, o
+  // dashboard tem de continuar a mostrar o saldo e os movimentos. Aconteceu
+  // exatamente isso em desenvolvimento: um servidor a correr desde antes de
+  // uma migração tinha o cliente Prisma velho, `prisma.recurringRule` vinha
+  // `undefined`, e a página inteira ia abaixo com "Alguma coisa correu mal".
+  // Recarregar não resolvia, porque a causa não era passageira.
+  //
+  // O saldo de alguém nunca deve desaparecer por causa de uma renda que não
+  // se conseguiu gerar.
+  let vencimentos: Awaited<ReturnType<typeof listarVencimentos>> = [];
+  try {
+    await gerarOcorrencias(session.workspaceId, session.timezone);
+    vencimentos = await listarVencimentos(
+      session.workspaceId,
+      session.timezone,
+      14,
+    );
+  } catch (error) {
+    console.error("[início] não foi possível preparar as contas a pagar", error);
+  }
 
   const vehicle = vehicles[0]
     ? await getVehicleStats(session.workspaceId, vehicles[0].id, range)
