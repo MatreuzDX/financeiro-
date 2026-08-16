@@ -43,6 +43,16 @@ export default async function EntrarPage({
         </Link>
       </p>
 
+      {/*
+        Quem chega aqui sem conta via só uma caixa de palavra-passe e ia
+        embora. Agora há para onde ir perceber o que isto é.
+      */}
+      <p className="mt-2 text-center text-xs text-muted">
+        <Link href="/sobre" className="text-primary hover:underline">
+          O que é o Financeiro?
+        </Link>
+      </p>
+
       <DevLoginButton />
     </Card>
   );

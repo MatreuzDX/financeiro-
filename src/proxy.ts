@@ -25,6 +25,9 @@ const PUBLIC_PREFIXES = [
   // Convites: quem é convidado ainda não tem sessão nenhuma. A validade do
   // token é verificada na página, contra a base de dados.
   "/convite",
+  // A página que explica o que isto é a quem chega pela primeira vez. Não lê
+  // dados de ninguém — é texto.
+  "/sobre",
 ];
 
 /**
