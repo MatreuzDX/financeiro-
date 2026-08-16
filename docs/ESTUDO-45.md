@@ -96,92 +96,92 @@ conta, gasta-se €2 000 — e em janeiro chega a nota da Segurança Social.
 ## 3. As 45 atualizações
 
 Esforço: **P** pequeno, **M** médio, **G** grande.
-Estado: ✅ feito · 🔨 nesta sessão · 📅 a seguir
+Estado: ✅ feito · ◐ parcial, com a diferença explicada · 📅 por fazer
 
 ### A — Motor fiscal português (o diferenciador)
 
 > Nenhum concorrente internacional faz isto. É a razão para a app existir
 > em Portugal e não ser mais um clone do Monarch.
 
-| # | O quê | Porquê | Esf. |
-|---|---|---|---|
-| 1 | **Perfil fiscal** — regime (dependente / independente / isento art. 53.º / IVA normal), 1.º ano de atividade, coeficiente | Sem isto, qualquer conta de impostos é adivinhação | M |
-| 2 | **Reserva automática por recibo** — a cada receita profissional, calcula IVA + SS + IRS a guardar | O dinheiro que não é seu deixa de parecer seu | G |
-| 3 | **Conta "Impostos a pagar"** — cofre virtual, fora do saldo disponível | Ver €2 000 quando só €1 300 são seus é a origem do problema | M |
-| 4 | **Calendário fiscal** — SS trimestral (jan/abr/jul/out), IVA, IRS anual | As datas apanham toda a gente de surpresa | M |
-| 5 | **Isenção do 1.º ano** de Segurança Social, com contagem dos 12 meses | Quem não sabe, paga a mais. Quem sabe e esquece, leva um susto no 13.º mês | P |
-| 6 | **Aviso do limite dos €13 500** de IVA, com projeção anual | Ultrapassar sem dar conta muda o regime todo | M |
-| 7 | **"Quanto é mesmo meu"** — número único no início | A pergunta que a app existe para responder | P |
+| # | O quê | Porquê | Esf. | Estado |
+|---|---|---|---|---|
+| 1 | **Perfil fiscal** — regime (dependente / independente / isento art. 53.º / IVA normal), 1.º ano de atividade, coeficiente | Sem isto, qualquer conta de impostos é adivinhação | M | ✅ |
+| 2 | **Reserva automática por recibo** — a cada receita profissional, calcula IVA + SS + IRS a guardar | O dinheiro que não é seu deixa de parecer seu | G | ✅ |
+| 3 | **Conta "Impostos a pagar"** — cofre virtual, fora do saldo disponível | Ver €2 000 quando só €1 300 são seus é a origem do problema | M | ◐ de outra maneira |
+| 4 | **Calendário fiscal** — SS trimestral (jan/abr/jul/out), IVA, IRS anual | As datas apanham toda a gente de surpresa | M | ✅ |
+| 5 | **Isenção do 1.º ano** de Segurança Social, com contagem dos 12 meses | Quem não sabe, paga a mais. Quem sabe e esquece, leva um susto no 13.º mês | P | ✅ |
+| 6 | **Aviso do limite dos €13 500** de IVA, com projeção anual | Ultrapassar sem dar conta muda o regime todo | M | ✅ |
+| 7 | **"Quanto é mesmo meu"** — número único no início | A pergunta que a app existe para responder | P | ✅ |
 
 ### B — Agente de inteligência artificial
 
 > 68% do mercado já tem. Deixou de ser diferenciador — é o preço de entrada.
 
-| # | O quê | Porquê | Esf. |
-|---|---|---|---|
-| 8 | **Perguntar em português** — "quanto gastei em combustível este ano?" | O Copilot e a Cleo vivem disto | G |
-| 9 | **Ancorado nos dados reais**, com ferramentas que consultam a base | Um chat que inventa números numa app de dinheiro é pior do que não ter chat | G |
-| 10 | **Escolhe o gráfico certo** para a pergunta | Foi o pedido explícito. Ninguém sabe que gráfico quer | M |
-| 11 | **Degrada com dignidade sem chave de API** — responde com as regras locais | A app não pode partir por falta de uma variável de ambiente | M |
-| 12 | **Nunca inventa: sem dados, di-lo** | A regra que já governa a `/analise` | P |
-| 13 | **Limite de gastos por mês**, visível | Uma API paga sem limite é uma fatura surpresa | M |
-| 14 | **Sugestões de perguntas** conforme o que há na conta | Um campo de texto vazio não convida ninguém | P |
+| # | O quê | Porquê | Esf. | Estado |
+|---|---|---|---|---|
+| 8 | **Perguntar em português** — "quanto gastei em combustível este ano?" | O Copilot e a Cleo vivem disto | G | ✅ |
+| 9 | **Ancorado nos dados reais**, com ferramentas que consultam a base | Um chat que inventa números numa app de dinheiro é pior do que não ter chat | G | ✅ |
+| 10 | **Escolhe o gráfico certo** para a pergunta | Foi o pedido explícito. Ninguém sabe que gráfico quer | M | ✅ |
+| 11 | **Degrada com dignidade sem chave de API** — responde com as regras locais | A app não pode partir por falta de uma variável de ambiente | M | ✅ |
+| 12 | **Nunca inventa: sem dados, di-lo** | A regra que já governa a `/analise` | P | ✅ |
+| 13 | **Limite de gastos por mês**, visível | Uma API paga sem limite é uma fatura surpresa | M | ✅ |
+| 14 | **Sugestões de perguntas** conforme o que há na conta | Um campo de texto vazio não convida ninguém | P | ✅ |
 
 ### C — Ganho real (para quem trabalha com veículo)
 
-| # | O quê | Porquê | Esf. |
-|---|---|---|---|
-| 15 | **Ganho real por hora** — receita menos combustível, desgaste, seguro, impostos | O buraco entre 25 €/h e 12 €/h. Já temos as peças todas | M |
-| 16 | **Ganho por km** com custo do veículo descontado | Saber se compensa aceitar a entrega | P |
-| 17 | **Comparar turnos** — manhã vs noite, dia da semana | Onde está o dinheiro que já se está a ganhar | M |
-| 18 | **Custo por km do veículo** a partir do consumo real | Já existe; falta pô-lo ao lado da receita | P |
+| # | O quê | Porquê | Esf. | Estado |
+|---|---|---|---|---|
+| 15 | **Ganho real por hora** — receita menos combustível, desgaste, seguro, impostos | O buraco entre 25 €/h e 12 €/h. Já temos as peças todas | M | ✅ |
+| 16 | **Ganho por km** com custo do veículo descontado | Saber se compensa aceitar a entrega | P | ✅ |
+| 17 | **Comparar turnos** — manhã vs noite, dia da semana | Onde está o dinheiro que já se está a ganhar | M | ◐ só por dia da semana |
+| 18 | **Custo por km do veículo** a partir do consumo real | Já existe; falta pô-lo ao lado da receita | P | ✅ |
 
 ### D — Hábito (o que traz de volta amanhã)
 
-| # | O quê | Porquê | Esf. |
-|---|---|---|---|
-| 19 | **Streak de registo** — dias seguidos | +41% em estudos. Mais eficaz do que dinheiro | M |
-| 20 | **Resumo da semana** — 4 números e uma frase | O ritual que cria o hábito | M |
-| 21 | **Vitória rápida no primeiro dia** — registar 1 despesa e ver logo o efeito | +80% de retenção | M |
-| 22 | **Medalhas por hábito, não por saldo** | Premiar o depósito e não o valor. A investigação avisa para isto | P |
-| 23 | **Registo em 3 toques** — folha rápida sem mudar de página | A ação mais repetida | M |
-| 24 | **Perdoar um dia** no streak | Um streak que parte à primeira falha desmotiva mais do que motiva | P |
+| # | O quê | Porquê | Esf. | Estado |
+|---|---|---|---|---|
+| 19 | **Streak de registo** — dias seguidos | +41% em estudos. Mais eficaz do que dinheiro | M | ✅ |
+| 20 | **Resumo da semana** — 4 números e uma frase | O ritual que cria o hábito | M | ✅ |
+| 21 | **Vitória rápida no primeiro dia** — registar 1 despesa e ver logo o efeito | +80% de retenção | M | 📅 |
+| 22 | **Medalhas por hábito, não por saldo** | Premiar o depósito e não o valor. A investigação avisa para isto | P | ✅ |
+| 23 | **Registo em 3 toques** — folha rápida sem mudar de página | A ação mais repetida | M | ✅ |
+| 24 | **Perdoar um dia** no streak | Um streak que parte à primeira falha desmotiva mais do que motiva | P | ✅ |
 
 ### E — Confiança nos números
 
-| # | O quê | Porquê | Esf. |
-|---|---|---|---|
-| 25 | **Reconciliação** — "o banco diz X, a app diz Y" | O Firefly III tem. A app diverge mais cedo do que se pensa | M |
-| 26 | **Deteção de subscrições** a partir dos padrões | Modelo de negócio inteiro do Rocket Money | M |
-| 27 | **Deteção de anomalias** — "isto é o dobro do costume" | IA de base, sem API nenhuma | M |
-| 28 | **Avisos de duplicado** ao registar à mão | O erro mais vulgar | P |
-| 29 | **Invariantes a correr em produção** | Hoje só no CI | P |
-| 30 | **Apagar a conta e levar os dados** | RGPD | M |
+| # | O quê | Porquê | Esf. | Estado |
+|---|---|---|---|---|
+| 25 | **Reconciliação** — "o banco diz X, a app diz Y" | O Firefly III tem. A app diverge mais cedo do que se pensa | M | 📅 |
+| 26 | **Deteção de subscrições** a partir dos padrões | Modelo de negócio inteiro do Rocket Money | M | ✅ |
+| 27 | **Deteção de anomalias** — "isto é o dobro do costume" | IA de base, sem API nenhuma | M | ✅ |
+| 28 | **Avisos de duplicado** ao registar à mão | O erro mais vulgar | P | 📅 |
+| 29 | **Invariantes a correr em produção** | Hoje só no CI | P | 📅 |
+| 30 | **Apagar a conta e levar os dados** | RGPD | M | ✅ |
 
 ### F — Educação (o pedido de fundo)
 
-| # | O quê | Porquê | Esf. |
-|---|---|---|---|
-| 31 | **Percurso guiado** — 8 lições curtas ligadas aos números da pessoa | Educação abstrata não pega. Com os números dela, pega | G |
-| 32 | **Explicar cada número** — toca e diz-se como foi calculado | Confiança nasce de perceber | M |
-| 33 | **Glossário ligado ao texto** | Já existe; falta ligá-lo | P |
-| 34 | **Regra 50/30/20** aplicada aos números reais | O ponto de partida mais conhecido | P |
-| 35 | **Fundo de emergência** — quantos meses aguenta | O número que mais tranquiliza ou assusta | M |
-| 36 | **Simulador "e se"** — e se cortar isto? e se ganhar mais aquilo? | Ensina causa e efeito | M |
+| # | O quê | Porquê | Esf. | Estado |
+|---|---|---|---|---|
+| 31 | **Percurso guiado** — 8 lições curtas ligadas aos números da pessoa | Educação abstrata não pega. Com os números dela, pega | G | 📅 |
+| 32 | **Explicar cada número** — toca e diz-se como foi calculado | Confiança nasce de perceber | M | 📅 |
+| 33 | **Glossário ligado ao texto** | Já existe; falta ligá-lo | P | 📅 |
+| 34 | **Regra 50/30/20** aplicada aos números reais | O ponto de partida mais conhecido | P | ✅ |
+| 35 | **Fundo de emergência** — quantos meses aguenta | O número que mais tranquiliza ou assusta | M | ✅ |
+| 36 | **Simulador "e se"** — e se cortar isto? e se ganhar mais aquilo? | Ensina causa e efeito | M | 📅 |
 
 ### G — Vender e distribuir
 
-| # | O quê | Porquê | Esf. |
-|---|---|---|---|
-| 37 | **Página pública** que explica o que é | Hoje o link leva a um ecrã de login | M |
-| 38 | **Planos e limites** — grátis, pessoal, equipa | A tabela `Plan` já existe e não faz nada | M |
-| 39 | **Modo demonstração** com dados falsos | Experimentar sem criar conta. Converte muito | M |
+| # | O quê | Porquê | Esf. | Estado |
+|---|---|---|---|---|
+| 37 | **Página pública** que explica o que é | Hoje o link leva a um ecrã de login | M | ✅ |
+| 38 | **Planos e limites** — grátis, pessoal, equipa | A tabela `Plan` já existe e não faz nada | M | 📅 |
+| 39 | **Modo demonstração** com dados falsos | Experimentar sem criar conta. Converte muito | M | 📅 |
 | 40 | **Convidar por link** já feito ✅ | Crescimento orgânico | — |
-| 41 | **Exportar para o contabilista** — CSV/JSON por trimestre | Quem tem contabilista, adora | P |
-| 42 | **Relatório em PDF** do mês | Para imprimir, mostrar, arquivar | M |
-| 43 | **Multi-idioma** (pt-PT e inglês) | Sair de Portugal um dia | G |
-| 44 | **Notificações** — só três: conta a vencer, orçamento estourado, saldo a acabar | Mais do que três e desligam-se todas | M |
-| 45 | **Recuperação de palavra-passe por email** | A porta em falta | M |
+| 41 | **Exportar para o contabilista** — CSV/JSON por trimestre | Quem tem contabilista, adora | P | ✅ |
+| 42 | **Relatório em PDF** do mês | Para imprimir, mostrar, arquivar | M | 📅 |
+| 43 | **Multi-idioma** (pt-PT e inglês) | Sair de Portugal um dia | G | 📅 |
+| 44 | **Notificações** — só três: conta a vencer, orçamento estourado, saldo a acabar | Mais do que três e desligam-se todas | M | 📅 |
+| 45 | **Recuperação de palavra-passe por email** | A porta em falta | M | 📅 |
 
 ---
 
@@ -203,3 +203,45 @@ os outros dois sejam desperdiçados por abandono ao terceiro dia.
   com a data e a fonte ao lado.
 - **A IA nunca inventa números.** As respostas saem de ferramentas que
   consultam a base de dados. Sem dados, diz que não sabe.
+
+---
+
+## 6. Estado real no fim desta sessão
+
+Contagem honesta, porque inflacionar aqui não ajuda ninguém a decidir o que
+fazer a seguir.
+
+| | Quantas | Quais |
+|---|---|---|
+| **✅ Feitas** | **28** | 1, 2, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 18, 19, 20, 22, 23, 24, 26, 27, 30, 34, 35, 37, 41 |
+| **◐ Parciais** | **2** | 3 e 17 |
+| **📅 Por fazer** | **15** | 21, 25, 28, 29, 31, 32, 33, 36, 38, 39, 42, 43, 44, 45 (e a 40 já existia antes) |
+
+### As duas parciais, e porquê
+
+**#3 — conta "Impostos a pagar".** Não foi criada nenhuma conta virtual. Em
+vez disso, a página de Impostos mostra **quanto do saldo é mesmo seu** e o que
+está lá dentro que já tem dono. Uma conta a fingir teria de aparecer nos
+saldos, nos gráficos e nas transferências, e passaria a mentir em todos esses
+sítios — o número resolve o problema real sem sujar o livro de lançamentos.
+Quem quiser separar mesmo o dinheiro cria uma conta poupança a sério e
+transfere.
+
+**#17 — comparar turnos.** Só está feita a comparação por **dia da semana**.
+Manhã contra noite exigiria a hora a que o trabalho começou, e a app regista
+apenas a data. Adivinhá-la pelo momento do registo daria "as noites rendem
+mais" a quem calha registar à noite — uma resposta errada com ar de certa.
+Para a fazer a sério é preciso um campo novo no registo de trabalhos.
+
+### O que fica por fazer, por ordem de valor
+
+1. **#25 reconciliação** — "o banco diz X, a app diz Y". É a única coisa desta
+   lista que protege contra a app divergir da realidade sem ninguém dar conta.
+2. **#45 recuperação de palavra-passe por email** — precisa de um serviço de
+   envio (Resend ou equivalente) e de uma variável de ambiente.
+3. **#21 vitória rápida no primeiro dia** e **#31 percurso guiado** — as duas
+   maiores alavancas de retenção que sobram.
+4. **#38 planos e #39 modo demonstração** — só fazem sentido quando houver
+   intenção real de cobrar.
+5. **#44 notificações** — exige service worker e permissões; é um lote só para
+   ele.
