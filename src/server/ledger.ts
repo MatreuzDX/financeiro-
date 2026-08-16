@@ -451,6 +451,46 @@ export async function deleteTransaction(
   });
 }
 
+/**
+ * Desfaz uma eliminação.
+ *
+ * Como apagar é sempre "soft", a linha continua lá — basta limpar o
+ * `deletedAt` e recalcular os saldos. É o que transforma um clique errado
+ * num susto de dois segundos, em vez de trabalho perdido.
+ */
+export async function restoreTransaction(
+  session: SessionUser,
+  id: string,
+): Promise<void> {
+  await prisma.$transaction(async (tx) => {
+    const existing = await tx.transaction.findFirst({
+      where: { id, workspaceId: session.workspaceId, deletedAt: { not: null } },
+      include: { entries: { select: { accountId: true } } },
+    });
+    if (!existing) throw new LedgerError("Movimento não encontrado.");
+
+    await tx.transaction.update({ where: { id }, data: { deletedAt: null } });
+
+    await recomputeMany(
+      tx,
+      existing.entries.map((e) => e.accountId).filter(Boolean) as string[],
+    );
+
+    await recordAudit(
+      {
+        action: "transaction.updated",
+        workspaceId: session.workspaceId,
+        userId: session.userId,
+        userEmail: session.email,
+        entity: "Transaction",
+        entityId: id,
+        metadata: { restaurado: true, description: existing.description },
+      },
+      tx,
+    );
+  });
+}
+
 // ─── Leitura ───────────────────────────────────────────────────────────────
 
 export type TransactionRow = {

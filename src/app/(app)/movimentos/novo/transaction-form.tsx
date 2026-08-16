@@ -13,7 +13,11 @@ import {
   Textarea,
 } from "@/components/ui";
 import { cn } from "@/lib/cn";
-import { createTransactionAction, type TxFormState } from "../actions";
+import {
+  createTransactionAction,
+  updateTransactionAction,
+  type TxFormState,
+} from "../actions";
 
 type Option = { id: string; name: string };
 
@@ -25,11 +29,15 @@ const TABS = [
 
 type TxType = (typeof TABS)[number]["value"];
 
-function SubmitButton() {
+function SubmitButton({ modo }: { modo: "criar" | "editar" }) {
   const { pending } = useFormStatus();
   return (
     <Button type="submit" size="lg" className="w-full" disabled={pending}>
-      {pending ? "A guardar…" : "Guardar"}
+      {pending
+        ? "A guardar…"
+        : modo === "editar"
+          ? "Guardar alterações"
+          : "Guardar"}
     </Button>
   );
 }
@@ -49,6 +57,9 @@ export function TransactionForm({
   vehicles,
   today,
   initialType = "EXPENSE",
+  modo = "criar",
+  transactionId,
+  initialValues,
 }: {
   accounts: Option[];
   expenseCategories: Option[];
@@ -57,13 +68,24 @@ export function TransactionForm({
   vehicles: Option[];
   today: string;
   initialType?: TxType;
+  modo?: "criar" | "editar";
+  transactionId?: string;
+  /** Pré-preenchimento: ao editar, ou ao duplicar um movimento existente. */
+  initialValues?: Record<string, string>;
 }) {
+  // Ao editar, a ação leva o id agarrado. `bind` não é opcional aqui: um
+  // campo escondido com o id era adulterável, e o servidor passaria a
+  // aceitar edições a movimentos que não estavam a ser editados.
   const [state, action] = useActionState<TxFormState, FormData>(
-    createTransactionAction,
+    modo === "editar" && transactionId
+      ? updateTransactionAction.bind(null, transactionId)
+      : createTransactionAction,
     {},
   );
   const [type, setType] = useState<TxType>(initialType);
-  const values = state.values ?? {};
+  // O que o servidor devolveu depois de um erro ganha sempre ao
+  // pré-preenchimento — senão, corrigir um campo apagava os outros.
+  const values = { ...(initialValues ?? {}), ...(state.values ?? {}) };
   const fieldError = (name: string) => state.fieldErrors?.[name];
 
   const categories = type === "INCOME" ? incomeCategories : expenseCategories;
@@ -238,7 +260,7 @@ export function TransactionForm({
         <Textarea name="notes" maxLength={2000} defaultValue={values.notes ?? ""} />
       </Field>
 
-      <SubmitButton />
+      <SubmitButton modo={modo} />
     </form>
   );
 }

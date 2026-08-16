@@ -14,6 +14,7 @@ import {
 } from "@/components/ui";
 import { PeriodPicker } from "@/components/period-picker";
 import { TransactionList } from "@/components/transaction-list";
+import { restoreTransactionAction } from "./actions";
 
 export const metadata: Metadata = { title: "Movimentos" };
 
@@ -63,6 +64,30 @@ export default async function MovimentosPage({
 
       {params.guardado ? (
         <SuccessBanner>Movimento guardado.</SuccessBanner>
+      ) : null}
+
+      {params.restaurado ? (
+        <SuccessBanner>Movimento reposto.</SuccessBanner>
+      ) : null}
+
+      {/*
+        Anular. Apagar é sempre "soft", por isso desfazer é só limpar o
+        `deletedAt` — o que transforma um clique errado num susto de dois
+        segundos em vez de trabalho perdido.
+      */}
+      {params.apagado ? (
+        <div className="animate-fade flex items-center gap-3 rounded-xl border border-line bg-surface-2 px-3 py-2.5 text-sm">
+          <span className="flex-1 text-muted">Movimento apagado.</span>
+          <form action={restoreTransactionAction}>
+            <input type="hidden" name="id" value={params.apagado} />
+            <button
+              type="submit"
+              className="text-xs font-medium text-primary hover:underline"
+            >
+              Anular
+            </button>
+          </form>
+        </div>
       ) : null}
 
       <PeriodPicker current={period.key} from={period.from} to={period.to} />

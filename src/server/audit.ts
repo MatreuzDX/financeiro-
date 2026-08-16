@@ -48,7 +48,8 @@ export type AuditAction =
   | "recurring.deleted"
   | "goal.created"
   | "goal.updated"
-  | "goal.contribution";
+  | "goal.contribution"
+  | "data.exported";
 
 const FORBIDDEN_KEYS = /pass|senha|token|secret|hash|cookie|authorization/i;
 
@@ -135,4 +136,5 @@ export const AUDIT_LABELS: Record<string, string> = {
   "goal.created": "Meta criada",
   "goal.updated": "Meta alterada",
   "goal.contribution": "Contribuição para meta",
+  "data.exported": "Dados exportados",
 };

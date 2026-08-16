@@ -1,9 +1,10 @@
-import { Trash2 } from "lucide-react";
+import Link from "next/link";
+import { Copy, Pencil } from "lucide-react";
+import { DeleteTransactionButton } from "@/components/delete-transaction-button";
 import { formatRelativeDay, type IsoDate } from "@/lib/date";
 import { formatCents } from "@/lib/money";
 import type { TransactionRow } from "@/server/ledger";
 import { EmptyState, LinkButton, Money } from "@/components/ui";
-import { deleteTransactionAction } from "@/app/(app)/movimentos/actions";
 
 /**
  * Lista de movimentos agrupada por dia.
@@ -118,17 +119,28 @@ export function TransactionList({
                   />
 
                   {canDelete ? (
-                    <form action={deleteTransactionAction} className="shrink-0">
-                      <input type="hidden" name="id" value={row.id} />
-                      <button
-                        type="submit"
-                        title="Apagar movimento"
-                        aria-label={`Apagar ${row.description}`}
-                        className="grid h-8 w-8 place-items-center rounded-lg text-faint transition-colors hover:bg-negative-soft hover:text-negative"
+                    <>
+                      <Link
+                        href={`/movimentos/${row.id}/editar`}
+                        title="Editar movimento"
+                        aria-label={`Editar ${row.description}`}
+                        className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-faint transition-colors hover:bg-surface-hover hover:text-ink"
                       >
-                        <Trash2 size={15} aria-hidden />
-                      </button>
-                    </form>
+                        <Pencil size={15} aria-hidden />
+                      </Link>
+                      <Link
+                        href={`/movimentos/novo?copiar=${row.id}`}
+                        title="Duplicar movimento"
+                        aria-label={`Duplicar ${row.description}`}
+                        className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-faint transition-colors hover:bg-surface-hover hover:text-ink"
+                      >
+                        <Copy size={15} aria-hidden />
+                      </Link>
+                      <DeleteTransactionButton
+                        id={row.id}
+                        descricao={row.description}
+                      />
+                    </>
                   ) : null}
                 </li>
               ))}

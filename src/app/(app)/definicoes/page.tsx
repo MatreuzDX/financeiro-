@@ -1,7 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { cookies } from "next/headers";
-import { ChevronRight, Download, KeyRound, Wand } from "lucide-react";
+import {
+  ChevronRight,
+  Download,
+  KeyRound,
+  PackageOpen,
+  ScrollText,
+  Wand,
+} from "lucide-react";
 import { requireSession } from "@/server/auth/guard";
 import { ROLE_LABELS } from "@/server/auth/permissions";
 import { prisma } from "@/server/db";
@@ -93,6 +100,38 @@ export default async function DefinicoesPage() {
               </span>
               <ChevronRight size={16} className="shrink-0 text-faint" aria-hidden />
             </Link>
+          </li>
+          <li>
+            <Link
+              href="/definicoes/atividade"
+              className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-surface-hover"
+            >
+              <ScrollText size={17} className="shrink-0 text-muted" aria-hidden />
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm text-ink">Atividade</span>
+                <span className="block text-[11px] text-muted">
+                  Tudo o que aconteceu na conta, incluindo entradas falhadas
+                </span>
+              </span>
+              <ChevronRight size={16} className="shrink-0 text-faint" aria-hidden />
+            </Link>
+          </li>
+          <li>
+            <a
+              href="/api/export/tudo"
+              className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-surface-hover"
+            >
+              <PackageOpen size={17} className="shrink-0 text-muted" aria-hidden />
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm text-ink">
+                  Levar todos os dados
+                </span>
+                <span className="block text-[11px] text-muted">
+                  Ficheiro JSON com tudo o que criou. Sem segredos lá dentro
+                </span>
+              </span>
+              <ChevronRight size={16} className="shrink-0 text-faint" aria-hidden />
+            </a>
           </li>
           <li>
             <a

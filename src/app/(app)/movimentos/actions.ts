@@ -7,6 +7,7 @@ import { guardAction } from "@/server/auth/guard";
 import {
   createTransaction,
   deleteTransaction,
+  restoreTransaction,
   updateTransaction,
 } from "@/server/ledger";
 import { parseAmountToCents } from "@/lib/money";
@@ -145,4 +146,19 @@ export async function deleteTransactionAction(formData: FormData) {
 
   await deleteTransaction(guard.session, id);
   revalidatePath("/", "layout");
+  // Leva o id no endereço para a lista poder oferecer "anular". Apagar é
+  // sempre soft, por isso desfazer é só limpar o `deletedAt`.
+  redirect(`/movimentos?apagado=${id}`);
+}
+
+export async function restoreTransactionAction(formData: FormData) {
+  const guard = await guardAction("data:write");
+  if (!guard.ok) return;
+
+  const id = String(formData.get("id") ?? "");
+  if (!id) return;
+
+  await restoreTransaction(guard.session, id);
+  revalidatePath("/", "layout");
+  redirect("/movimentos?restaurado=1");
 }
