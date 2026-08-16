@@ -171,10 +171,41 @@ export function isEmailDeliveryConfigured(): boolean {
 
 export type ResetRequestOutcome = {
   ok: boolean;
-  /** Em desenvolvimento, o link é devolvido para aparecer no terminal. */
+  /**
+   * O link, quando pode ser mostrado: em desenvolvimento, ou quando a
+   * recuperação de emergência está ligada para este email.
+   */
   devLink?: string;
+  /** Porque é que o link está visível. A interface explica-o à pessoa. */
+  motivo?: "desenvolvimento" | "emergencia";
   error?: string;
 };
+
+/**
+ * Recuperação de emergência, para instalações sem serviço de email.
+ *
+ * O PROBLEMA REAL: esta app instala-se num servidor de uma pessoa só. Se ela
+ * esquecer a palavra-passe e não houver serviço de email configurado, fica
+ * fechada fora dos seus próprios dados. O script de terminal resolve — mas
+ * exige a ligação à base de dados de produção na mão, que a maior parte das
+ * pessoas não tem à distância de um telemóvel.
+ *
+ * A SOLUÇÃO: quem controla as variáveis de ambiente do servidor define
+ * `RECOVERY_EMAIL` com o email da conta. A partir daí, e só para ESSE email, o
+ * link de recuperação aparece no ecrã em vez de ser enviado.
+ *
+ * PORQUE É QUE ISTO NÃO É UM BURACO: mostrar o link a quem escreve um email
+ * qualquer seria tomar contas alheias com um clique. Aqui o portão não é o
+ * email — é o acesso às variáveis de ambiente do servidor, que só tem quem já
+ * manda em tudo. Quem consegue definir a variável já consegue ler a base de
+ * dados diretamente.
+ *
+ * Deve ser removida assim que se recuperar o acesso, e a interface diz isso.
+ */
+export function emergencyRecoveryEmail(): string | null {
+  const valor = process.env.RECOVERY_EMAIL?.trim().toLowerCase();
+  return valor ? valor : null;
+}
 
 export async function requestPasswordReset(input: {
   email: string;
@@ -217,6 +248,18 @@ export async function requestPasswordReset(input: {
 
   const link = `${input.appUrl}/redefinir?token=${token}`;
 
+  // A emergência vem primeiro: se está ligada, é porque alguém ficou fechado
+  // de fora e precisa do link agora, mesmo que o email esteja configurado.
+  if (emergencyRecoveryEmail() === email) {
+    await recordAudit({
+      action: "auth.password_reset_emergency",
+      userId: user.id,
+      userEmail: email,
+      ipHash: hashIp(input.ip),
+    });
+    return { ok: true, devLink: link, motivo: "emergencia" };
+  }
+
   if (isEmailDeliveryConfigured()) {
     // TODO(fase 5): enviar por Resend. Enquanto não houver serviço de email
     // configurado, esta ramificação não corre — e a interface diz a verdade
@@ -226,7 +269,7 @@ export async function requestPasswordReset(input: {
 
   if (process.env.NODE_ENV === "development") {
     console.log(`\n[recuperação] link para ${email}:\n${link}\n`);
-    return { ok: true, devLink: link };
+    return { ok: true, devLink: link, motivo: "desenvolvimento" };
   }
 
   return { ok: true };

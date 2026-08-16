@@ -19,6 +19,8 @@ export type FormState = {
   success?: string;
   /** Valores a repor no formulário — errar uma vez não deve apagar tudo. */
   values?: Record<string, string>;
+  /** Link de recuperação, só na recuperação de emergência. */
+  link?: string;
 };
 
 async function clientMeta() {
@@ -159,6 +161,13 @@ export async function requestResetAction(
   });
 
   if (!result.ok) return { error: result.error, values: { email } };
+
+  // Recuperação de emergência: o link vai para o ecrã. Só acontece quando
+  // `RECOVERY_EMAIL` foi definida no servidor com este mesmo email — ver o
+  // comentário longo em `server/auth/service.ts`.
+  if (result.motivo === "emergencia" && result.devLink) {
+    return { success: "emergencia", link: result.devLink };
+  }
 
   if (result.devLink) {
     return {

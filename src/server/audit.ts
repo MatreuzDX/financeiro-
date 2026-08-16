@@ -62,7 +62,8 @@ export type AuditAction =
   | "rule.deleted"
   | "rule.applied"
   | "ai.question"
-  | "account.deleted";
+  | "account.deleted"
+  | "auth.password_reset_emergency";
 
 const FORBIDDEN_KEYS = /pass|senha|token|secret|hash|cookie|authorization/i;
 
@@ -163,4 +164,5 @@ export const AUDIT_LABELS: Record<string, string> = {
   "rule.applied": "Regras aplicadas a movimentos antigos",
   "ai.question": "Pergunta ao assistente",
   "account.deleted": "Conta apagada a pedido do titular",
+  "auth.password_reset_emergency": "Recuperação de emergência usada",
 };
