@@ -55,7 +55,12 @@ export type AuditAction =
   | "member.joined"
   | "member.removed"
   | "member.role_changed"
-  | "member.invite_cancelled";
+  | "member.invite_cancelled"
+  | "import.completed"
+  | "import.undone"
+  | "rule.created"
+  | "rule.deleted"
+  | "rule.applied";
 
 const FORBIDDEN_KEYS = /pass|senha|token|secret|hash|cookie|authorization/i;
 
@@ -149,4 +154,9 @@ export const AUDIT_LABELS: Record<string, string> = {
   "member.removed": "Membro removido",
   "member.role_changed": "Papel alterado",
   "member.invite_cancelled": "Convite cancelado",
+  "import.completed": "Extrato importado",
+  "import.undone": "Importação desfeita",
+  "rule.created": "Regra de categoria criada",
+  "rule.deleted": "Regra de categoria apagada",
+  "rule.applied": "Regras aplicadas a movimentos antigos",
 };

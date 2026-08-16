@@ -26,6 +26,7 @@ import {
   TrendingDown,
   TrendingUp,
   Trophy,
+  Upload,
   Wallet,
   type LucideIcon,
 } from "lucide-react";
@@ -52,6 +53,7 @@ export const MAIN_NAV: NavItem[] = [
   { href: "/trabalhos", label: "Trabalhos", Icon: Bike },
   { href: "/veiculos", label: "Veículos", Icon: Car },
   { href: "/relatorios", label: "Relatórios", Icon: ChartColumn },
+  { href: "/importar", label: "Importar extrato", Icon: Upload },
   { href: "/definicoes", label: "Definições", Icon: Settings },
 ];
 

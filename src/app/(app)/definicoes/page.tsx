@@ -9,6 +9,7 @@ import {
   ScrollText,
   Users,
   Wand,
+  Wand2,
 } from "lucide-react";
 import { requireSession } from "@/server/auth/guard";
 import { ROLE_LABELS } from "@/server/auth/permissions";
@@ -114,6 +115,23 @@ export default async function DefinicoesPage() {
                 </span>
                 <span className="block text-[11px] text-muted">
                   Partilhar as contas com o casal, a família ou a equipa
+                </span>
+              </span>
+              <ChevronRight size={16} className="shrink-0 text-faint" aria-hidden />
+            </Link>
+          </li>
+          <li>
+            <Link
+              href="/definicoes/regras"
+              className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-surface-hover"
+            >
+              <Wand2 size={17} className="shrink-0 text-muted" aria-hidden />
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm text-ink">
+                  Regras de categorização
+                </span>
+                <span className="block text-[11px] text-muted">
+                  Para o extrato do banco se categorizar sozinho
                 </span>
               </span>
               <ChevronRight size={16} className="shrink-0 text-faint" aria-hidden />

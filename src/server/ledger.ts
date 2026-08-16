@@ -319,6 +319,109 @@ export async function createTransaction(
   return created;
 }
 
+/**
+ * Escreve muitos movimentos de uma vez, numa só transação SQL.
+ *
+ * A importação de um extrato traz duzentas linhas. Chamar `createTransaction`
+ * duzentas vezes são duzentas transações SQL e, contra uma base de dados
+ * remota, quase meio minuto de espera — com o risco de ficar a meio se a
+ * ligação cair.
+ *
+ * O que NÃO se dispensa por ser em massa: a composição das linhas continua a
+ * passar pelo `composeEntries`, e o `workspaceId` continua a vir da sessão.
+ * O que muda é só a verificação de pertença, feita UMA vez para o conjunto
+ * todo em vez de linha a linha.
+ *
+ * O trigger de soma-zero é DEFERRABLE, por isso valida tudo no commit.
+ */
+export async function createManyTransactions(
+  session: SessionUser,
+  inputs: readonly (TransactionInput & {
+    importBatchId?: string;
+    importHash?: string;
+  })[],
+  options: { timeoutMs?: number } = {},
+): Promise<number> {
+  if (inputs.length === 0) return 0;
+
+  const parsed = inputs.map((raw) => {
+    const input = transactionInput.parse(raw);
+    return {
+      input,
+      entries: composeEntries(input),
+      importBatchId: raw.importBatchId,
+      importHash: raw.importHash,
+    };
+  });
+
+  return prisma.$transaction(
+    async (tx) => {
+      await assertBelongsToWorkspace(tx, session.workspaceId, {
+        accountIds: parsed.flatMap((p) => p.entries.map((e) => e.accountId)),
+        categoryIds: parsed.flatMap((p) => p.entries.map((e) => e.categoryId)),
+      });
+
+      // Os tipos das categorias verificam-se de uma vez, não N vezes.
+      const categoryIds = [
+        ...new Set(
+          parsed
+            .map((p) => ("categoryId" in p.input ? p.input.categoryId : null))
+            .filter(Boolean) as string[],
+        ),
+      ];
+      const categories = await tx.category.findMany({
+        where: { id: { in: categoryIds } },
+        select: { id: true, type: true },
+      });
+      const typeById = new Map(categories.map((c) => [c.id, c.type]));
+      for (const { input } of parsed) {
+        if (input.type === "TRANSFER") continue;
+        if (typeById.get(input.categoryId) !== input.type) {
+          throw new LedgerError(
+            `"${input.description}": a categoria escolhida não é do tipo certo.`,
+          );
+        }
+      }
+
+      for (const { input, entries, importBatchId, importHash } of parsed) {
+        await tx.transaction.create({
+          data: {
+            workspaceId: session.workspaceId,
+            date: fromIso(input.date as IsoDate),
+            type: input.type as TransactionType,
+            scope: input.scope as Scope,
+            description: input.description,
+            notes: input.notes || null,
+            importBatchId: importBatchId ?? null,
+            importHash: importHash ?? null,
+            createdById: session.userId,
+            entries: {
+              create: entries.map((e) => ({
+                workspaceId: session.workspaceId,
+                accountId: e.accountId ?? null,
+                categoryId: e.categoryId ?? null,
+                amountCents: e.amountCents,
+              })),
+            },
+          },
+          select: { id: true },
+        });
+      }
+
+      await recomputeMany(
+        tx,
+        parsed.flatMap((p) =>
+          p.entries.map((e) => e.accountId).filter(Boolean),
+        ) as string[],
+      );
+
+      return parsed.length;
+    },
+    // Duzentas linhas contra a Neon não cabem nos 5 s por omissão do Prisma.
+    { timeout: options.timeoutMs ?? 120_000, maxWait: 20_000 },
+  );
+}
+
 export async function updateTransaction(
   session: SessionUser,
   id: string,

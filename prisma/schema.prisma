@@ -145,6 +145,8 @@ model Workspace {
   recurringRules RecurringRule[]
   goals          Goal[]
   invites        Invite[]
+  importBatches  ImportBatch[]
+  categoryRules  CategoryRule[]
 }
 
 /// Convite para alguém se juntar a um espaço.
@@ -259,6 +261,7 @@ model Category {
   entries     Entry[]
   budgetLines BudgetLine[]
   recurringRules RecurringRule[]
+  categoryRules  CategoryRule[]
 
   @@unique([workspaceId, name, type])
   @@index([workspaceId, type, archived])
@@ -295,6 +298,12 @@ model Transaction {
   /// Data de vencimento, para contas a pagar e a receber.
   dueDate        DateTime? @db.Date
 
+  /// Lote de importação a que este movimento pertence, quando veio de um
+  /// extrato. É o que permite desfazer uma importação inteira.
+  importBatchId  String?
+  /// Impressão digital da linha do extrato. Ver `src/server/import.ts`.
+  importHash     String?
+
   createdById String?
   revision    Int       @default(1)
   deletedAt   DateTime?
@@ -306,6 +315,7 @@ model Transaction {
   vehicle      Vehicle?       @relation(fields: [vehicleId], references: [id], onDelete: Restrict)
   workJob      WorkJob?       @relation(fields: [workJobId], references: [id], onDelete: SetNull)
   recurring    RecurringRule? @relation(fields: [recurringId], references: [id], onDelete: SetNull)
+  importBatch  ImportBatch?   @relation(fields: [importBatchId], references: [id], onDelete: SetNull)
   entries      Entry[]
 
   @@index([workspaceId, deletedAt, date])
@@ -314,8 +324,64 @@ model Transaction {
   @@index([workspaceId, vehicleId, date])
   @@index([workspaceId, incomeSourceId, date])
   @@index([workspaceId, status, dueDate])
+  @@index([workspaceId, importBatchId])
   /// Impede que a mesma recorrência gere duas vezes o mesmo mês.
   @@unique([recurringId, date])
+  /// Impede que o mesmo movimento do extrato entre duas vezes, mesmo que os
+  /// ficheiros importados se sobreponham. `importHash` é nulo em tudo o que
+  /// foi registado à mão, e o Postgres deixa repetir nulos — por isso esta
+  /// restrição só aperta onde deve.
+  @@unique([workspaceId, importHash])
+}
+
+/// Uma importação de extrato.
+///
+/// Existe para a importação poder ser DESFEITA de uma vez. Importar o ficheiro
+/// errado, ou o mês errado, é um engano vulgar; sem isto, a única saída era
+/// apagar duzentos movimentos um a um.
+model ImportBatch {
+  id          String   @id @default(cuid())
+  workspaceId String
+  accountId   String
+  filename    String
+  /// Linhas lidas, importadas e saltadas — a conta que a app mostra depois.
+  totalRows    Int     @default(0)
+  importedRows Int     @default(0)
+  skippedRows  Int     @default(0)
+  undoneAt    DateTime?
+  createdById String?
+  createdAt   DateTime @default(now())
+
+  workspace    Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  transactions Transaction[]
+
+  @@index([workspaceId, createdAt])
+}
+
+/// "Se a descrição contiver PINGO DOCE, é Supermercado."
+///
+/// É o motor de regras do Firefly III, reduzido ao que resolve 80% do
+/// trabalho: procurar um pedaço de texto na descrição. Sem expressões
+/// regulares — quem importa um extrato não quer aprender `^(?:.*)$`.
+model CategoryRule {
+  id          String   @id @default(cuid())
+  workspaceId String
+  /// Guardado já normalizado (sem acentos, minúsculas) para comparar depressa.
+  pattern     String
+  /// O texto tal como a pessoa o escreveu, para lho mostrar de volta.
+  label       String
+  categoryId  String
+  scope       Scope    @default(PERSONAL)
+  /// Quantas vezes já acertou. Serve para ordenar e para dar confiança.
+  hits        Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  category  Category  @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, pattern])
+  @@index([workspaceId])
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
