@@ -2,6 +2,7 @@ import Link from "next/link";
 import {
   ArrowRight,
   Bike,
+  Flame,
   Lightbulb,
   TrendingDown,
   TrendingUp,
@@ -29,6 +30,7 @@ import {
 } from "@/lib/money";
 import { needsSetup } from "@/server/setup";
 import { gerarOcorrencias, listarVencimentos } from "@/server/recurring";
+import { estadoDoHabito } from "@/server/habito";
 import { cn } from "@/lib/cn";
 import {
   Card,
@@ -116,6 +118,15 @@ export default async function DashboardPage({
     ? await getVehicleStats(session.workspaceId, vehicles[0].id, range)
     : null;
 
+  // A sequência. Isolada pela mesma razão que as recorrências: é acessório e
+  // não pode levar o saldo consigo se falhar.
+  let habito: Awaited<ReturnType<typeof estadoDoHabito>> | null = null;
+  try {
+    habito = await estadoDoHabito(session.workspaceId, session.timezone);
+  } catch (error) {
+    console.error("[início] não foi possível calcular a sequência", error);
+  }
+
   const series = evolution.map((p) => ({
     label: p.label,
     incomeCents: p.incomeCents,
@@ -139,6 +150,32 @@ export default async function DashboardPage({
         pistas. Isto é a porta de volta — e desaparece sozinho assim que
         houver uma conta criada.
       */}
+      {/*
+        A sequência, em cima e pequena. Não é um troféu — é um lembrete de
+        que registar hoje mantém a coisa viva. Só aparece quando já há
+        alguma coisa para manter.
+      */}
+      {habito && (habito.habito.atual > 0 || habito.habito.recorde > 0) ? (
+        <Link
+          href="/semana"
+          className="animate-rise flex items-center gap-2.5 rounded-xl border border-line bg-surface px-3 py-2.5 transition-colors hover:bg-surface-hover"
+        >
+          <Flame
+            size={16}
+            className={
+              habito.habito.hojeFeito ? "shrink-0 text-warning" : "shrink-0 text-faint"
+            }
+            aria-hidden
+          />
+          <span className="min-w-0 flex-1 truncate text-xs text-ink">
+            {habito.frase}
+          </span>
+          <span className="tabular shrink-0 text-xs font-semibold text-ink">
+            {habito.habito.atual}
+          </span>
+        </Link>
+      ) : null}
+
       {porConfigurar ? (
         <Card className="animate-rise border-primary/30 bg-primary-soft">
           <p className="text-sm font-medium text-primary">

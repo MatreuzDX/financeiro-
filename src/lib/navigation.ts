@@ -16,6 +16,8 @@ import {
   Car,
   ChartColumn,
   CreditCard,
+  Flame,
+  Gauge,
   House,
   Landmark,
   Lightbulb,
@@ -41,6 +43,7 @@ export type NavItem = {
 
 export const MAIN_NAV: NavItem[] = [
   { href: "/", label: "Início", Icon: House },
+  { href: "/semana", label: "A minha semana", Icon: Flame },
   { href: "/assistente", label: "Assistente", Icon: Sparkles },
   { href: "/analise", label: "Análise", Icon: Lightbulb },
   { href: "/movimentos", label: "Movimentos", Icon: ArrowLeftRight },
@@ -54,6 +57,7 @@ export const MAIN_NAV: NavItem[] = [
   { href: "/categorias", label: "Categorias", Icon: Tags },
   { href: "/fontes", label: "Fontes de renda", Icon: CreditCard },
   { href: "/trabalhos", label: "Trabalhos", Icon: Bike },
+  { href: "/ganho-real", label: "Ganho real", Icon: Gauge },
   { href: "/veiculos", label: "Veículos", Icon: Car },
   { href: "/fiscal", label: "Impostos", Icon: Receipt },
   { href: "/relatorios", label: "Relatórios", Icon: ChartColumn },
