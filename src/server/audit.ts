@@ -60,7 +60,8 @@ export type AuditAction =
   | "import.undone"
   | "rule.created"
   | "rule.deleted"
-  | "rule.applied";
+  | "rule.applied"
+  | "ai.question";
 
 const FORBIDDEN_KEYS = /pass|senha|token|secret|hash|cookie|authorization/i;
 
@@ -159,4 +160,5 @@ export const AUDIT_LABELS: Record<string, string> = {
   "rule.created": "Regra de categoria criada",
   "rule.deleted": "Regra de categoria apagada",
   "rule.applied": "Regras aplicadas a movimentos antigos",
+  "ai.question": "Pergunta ao assistente",
 };

@@ -19,8 +19,10 @@ import {
   House,
   Landmark,
   Lightbulb,
+  Receipt,
   Repeat,
   Settings,
+  Sparkles,
   Tags,
   Target,
   TrendingDown,
@@ -39,6 +41,7 @@ export type NavItem = {
 
 export const MAIN_NAV: NavItem[] = [
   { href: "/", label: "Início", Icon: House },
+  { href: "/assistente", label: "Assistente", Icon: Sparkles },
   { href: "/analise", label: "Análise", Icon: Lightbulb },
   { href: "/movimentos", label: "Movimentos", Icon: ArrowLeftRight },
   { href: "/receitas", label: "Receitas", Icon: TrendingUp },
@@ -52,6 +55,7 @@ export const MAIN_NAV: NavItem[] = [
   { href: "/fontes", label: "Fontes de renda", Icon: CreditCard },
   { href: "/trabalhos", label: "Trabalhos", Icon: Bike },
   { href: "/veiculos", label: "Veículos", Icon: Car },
+  { href: "/fiscal", label: "Impostos", Icon: Receipt },
   { href: "/relatorios", label: "Relatórios", Icon: ChartColumn },
   { href: "/importar", label: "Importar extrato", Icon: Upload },
   { href: "/definicoes", label: "Definições", Icon: Settings },

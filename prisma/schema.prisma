@@ -147,6 +147,53 @@ model Workspace {
   invites        Invite[]
   importBatches  ImportBatch[]
   categoryRules  CategoryRule[]
+  fiscalProfile  FiscalProfile?
+  aiUsage        AiUsage[]
+}
+
+/// Uso do assistente, por mes.
+///
+/// Existe por uma razao so: uma API paga sem tecto e uma fatura surpresa. O
+/// limite e por espaco e por mes, e a app diz quanto falta antes de gastar.
+model AiUsage {
+  id           String   @id @default(cuid())
+  workspaceId  String
+  /// "AAAA-MM".
+  month        String
+  perguntas    Int      @default(0)
+  tokensEntrada Int     @default(0)
+  tokensSaida   Int     @default(0)
+  updatedAt    DateTime @updatedAt
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, month])
+}
+
+/// Perfil fiscal portugues, para separar o dinheiro que esta na conta e nao e
+/// seu. Ver `src/lib/fiscal.ts` — as contas vivem la, isto e so o que a
+/// pessoa configurou.
+///
+/// As taxas guardam-se em centesimos de ponto percentual (2140 = 21,40%), pela
+/// mesma razao que o dinheiro se guarda em centimos: nada de virgula flutuante.
+model FiscalProfile {
+  id              String   @id @default(cuid())
+  workspaceId     String   @unique
+  independente    Boolean  @default(false)
+  /// "ISENTO_ART53" ou "NORMAL".
+  regimeIva       String   @default("ISENTO_ART53")
+  retencaoNaFonte Boolean  @default(false)
+  /// "AAAA-MM" do inicio de atividade, para a isencao dos 12 meses.
+  inicioAtividade String?
+  taxaSs          Int      @default(2140)
+  coeficienteSs   Int      @default(7000)
+  taxaIva         Int      @default(2300)
+  taxaRetencao    Int      @default(2300)
+  reservaIrs      Int      @default(2000)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 }
 
 /// Convite para alguém se juntar a um espaço.
