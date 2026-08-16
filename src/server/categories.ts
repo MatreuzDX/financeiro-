@@ -137,3 +137,52 @@ export async function archiveCategory(session: SessionUser, id: string) {
     metadata: { name: category.name, arquivada: !category.archived },
   });
 }
+
+/**
+ * As categorias de despesa que a pessoa mais usa, para o registo rápido.
+ *
+ * Ordenadas por NÚMERO DE VEZES, não por valor: quem regista muitos cafés e
+ * uma renda quer o café à mão, não a renda. E não por ordem alfabética, que
+ * poria "Água" primeiro para toda a gente.
+ *
+ * Quem ainda não tem histórico recebe as primeiras da lista — melhor do que
+ * um ecrã vazio no primeiro registo, que é justamente o que se quer facilitar.
+ */
+export async function categoriasMaisUsadas(
+  workspaceId: string,
+  limite = 10,
+): Promise<{ id: string; name: string; color: string | null }[]> {
+  const usadas = await prisma.entry.groupBy({
+    by: ["categoryId"],
+    _count: { categoryId: true },
+    where: {
+      workspaceId,
+      category: { type: "EXPENSE", archived: false },
+      transaction: { deletedAt: null },
+    },
+    orderBy: { _count: { categoryId: "desc" } },
+    take: limite,
+  });
+
+  const ids = usadas.map((u) => u.categoryId).filter(Boolean) as string[];
+
+  const categorias = await prisma.category.findMany({
+    where: {
+      workspaceId,
+      type: "EXPENSE",
+      archived: false,
+      ...(ids.length > 0 ? { id: { in: ids } } : {}),
+    },
+    select: { id: true, name: true, color: true },
+    orderBy: { sortOrder: "asc" },
+    take: limite,
+  });
+
+  if (ids.length === 0) return categorias;
+
+  // Repor a ordem de utilização, que o findMany perdeu.
+  const posicao = new Map(ids.map((id, i) => [id, i]));
+  return categorias.sort(
+    (a, b) => (posicao.get(a.id) ?? 99) - (posicao.get(b.id) ?? 99),
+  );
+}

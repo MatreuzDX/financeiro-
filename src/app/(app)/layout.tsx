@@ -2,8 +2,10 @@ import { cookies } from "next/headers";
 import { LogOut } from "lucide-react";
 import { requireSessionRaw } from "@/server/auth/guard";
 import { BottomNav, Sidebar } from "@/components/nav";
+import { RegistoRapido } from "@/components/registo-rapido";
 import { ThemeSwitcher } from "@/components/theme";
 import { isThemeChoice, THEME_COOKIE } from "@/lib/theme";
+import { categoriasMaisUsadas } from "@/server/categories";
 import { logoutAction } from "./actions";
 
 export default async function AppLayout({
@@ -23,6 +25,11 @@ export default async function AppLayout({
   const store = await cookies();
   const raw = store.get(THEME_COOKIE)?.value;
   const theme = isThemeChoice(raw) ? raw : "system";
+
+  // As categorias de despesa mais usadas, para o registo rápido. Ordenadas
+  // pelo que a pessoa mais gasta, não por ordem alfabética: as três primeiras
+  // resolvem quase sempre, e assim o toque certo está sempre à vista.
+  const categorias = await categoriasMaisUsadas(session.workspaceId);
 
   return (
     <div className="flex min-h-dvh">
@@ -62,6 +69,8 @@ export default async function AppLayout({
           {children}
         </main>
       </div>
+
+      {categorias.length > 0 ? <RegistoRapido categorias={categorias} /> : null}
 
       <BottomNav />
     </div>

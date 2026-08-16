@@ -1,6 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { AlertTriangle, CalendarClock, PiggyBank, ShieldCheck } from "lucide-react";
+import {
+  AlertTriangle,
+  CalendarClock,
+  FileSpreadsheet,
+  PiggyBank,
+  ShieldCheck,
+} from "lucide-react";
 import { requireSession } from "@/server/auth/guard";
 import { panoramaFiscal } from "@/server/fiscal";
 import { TAXAS } from "@/lib/fiscal";
@@ -176,6 +182,23 @@ export default async function FiscalPage() {
           </p>
         </Card>
       )}
+
+      {p.perfil.independente ? (
+        <a
+          href="/api/export/contabilista"
+          className="flex items-center gap-3 rounded-xl border border-line bg-surface px-4 py-3 transition-colors hover:bg-surface-hover"
+        >
+          <FileSpreadsheet size={17} className="shrink-0 text-muted" aria-hidden />
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm text-ink">
+              Pacote para o contabilista
+            </span>
+            <span className="block text-[11px] text-muted">
+              CSV do trimestre com os movimentos profissionais e as estimativas
+            </span>
+          </span>
+        </a>
+      ) : null}
 
       <FiscalForm perfil={p.perfil} />
 

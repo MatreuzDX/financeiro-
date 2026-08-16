@@ -7,6 +7,7 @@ import {
   KeyRound,
   PackageOpen,
   ScrollText,
+  Trash2,
   Users,
   Wand,
   Wand2,
@@ -214,10 +215,32 @@ export default async function DefinicoesPage() {
         )}
       </Card>
 
+      <Card className="p-0">
+        <ul className="divide-y divide-line">
+          <li>
+            <Link
+              href="/definicoes/apagar"
+              className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-surface-hover"
+            >
+              <Trash2 size={17} className="shrink-0 text-negative" aria-hidden />
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm text-negative">
+                  Apagar a conta
+                </span>
+                <span className="block text-[11px] text-muted">
+                  Leva tudo consigo. Não há como voltar atrás
+                </span>
+              </span>
+              <ChevronRight size={16} className="shrink-0 text-faint" aria-hidden />
+            </Link>
+          </li>
+        </ul>
+      </Card>
+
       <p className="text-[11px] leading-relaxed text-faint">
-        Ainda por fazer nesta secção: exportação completa dos dados, apagar a
-        conta, autenticação em dois passos. Estão previstas para as fases
-        seguintes e não estão escondidas atrás de botões que não funcionam.
+        Ainda por fazer nesta secção: autenticação em dois passos e recuperação
+        de palavra-passe por email. Não estão escondidas atrás de botões que
+        não funcionam.
       </p>
     </div>
   );
