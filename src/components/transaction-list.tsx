@@ -19,12 +19,18 @@ export function TransactionList({
   emptyTitle = "Ainda não há movimentos",
   emptyDescription = "Registe a primeira receita ou despesa para começar.",
   canDelete = true,
+  autores,
 }: {
   rows: TransactionRow[];
   today: IsoDate;
   emptyTitle?: string;
   emptyDescription?: string;
   canDelete?: boolean;
+  /**
+   * Nomes por id, só quando o espaço tem mais do que uma pessoa. Num espaço
+   * de um só, dizer "registado por si" em todas as linhas é ruído.
+   */
+  autores?: Map<string, string>;
 }) {
   if (rows.length === 0) {
     return (
@@ -101,6 +107,9 @@ export function TransactionList({
                             .join(" · ")}
                       {row.scope === "BUSINESS" ? " · Profissional" : ""}
                       {row.vehicleName ? ` · ${row.vehicleName}` : ""}
+                      {autores && row.createdById && autores.get(row.createdById)
+                        ? ` · ${autores.get(row.createdById)}`
+                        : ""}
                     </p>
                   </div>
 

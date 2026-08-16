@@ -22,6 +22,9 @@ const PUBLIC_PREFIXES = [
   // Instalação inicial. A própria página fecha-se assim que existir uma
   // conta — o proxy não consegue verificar isso porque não fala com a base.
   "/instalar",
+  // Convites: quem é convidado ainda não tem sessão nenhuma. A validade do
+  // token é verificada na página, contra a base de dados.
+  "/convite",
 ];
 
 /**

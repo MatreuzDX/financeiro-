@@ -49,7 +49,13 @@ export type AuditAction =
   | "goal.created"
   | "goal.updated"
   | "goal.contribution"
-  | "data.exported";
+  | "data.exported"
+  | "workspace.created"
+  | "member.invited"
+  | "member.joined"
+  | "member.removed"
+  | "member.role_changed"
+  | "member.invite_cancelled";
 
 const FORBIDDEN_KEYS = /pass|senha|token|secret|hash|cookie|authorization/i;
 
@@ -137,4 +143,10 @@ export const AUDIT_LABELS: Record<string, string> = {
   "goal.updated": "Meta alterada",
   "goal.contribution": "Contribuição para meta",
   "data.exported": "Dados exportados",
+  "workspace.created": "Espaço criado",
+  "member.invited": "Convite enviado",
+  "member.joined": "Entrou no espaço",
+  "member.removed": "Membro removido",
+  "member.role_changed": "Papel alterado",
+  "member.invite_cancelled": "Convite cancelado",
 };

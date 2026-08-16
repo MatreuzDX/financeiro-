@@ -144,6 +144,30 @@ model Workspace {
   budgets        Budget[]
   recurringRules RecurringRule[]
   goals          Goal[]
+  invites        Invite[]
+}
+
+/// Convite para alguém se juntar a um espaço.
+///
+/// Não há serviço de email configurado, por isso o convite é um LINK que
+/// quem convida copia e envia por onde quiser — WhatsApp, mensagem, papel.
+/// Para um casal ou uma família isso é melhor do que email, não pior.
+///
+/// Guarda-se só o hash do token: quem ler a base não consegue entrar com ele.
+model Invite {
+  id          String    @id @default(cuid())
+  workspaceId String
+  email       String
+  role        Role      @default(MEMBER)
+  tokenHash   String    @unique
+  expiresAt   DateTime
+  acceptedAt  DateTime?
+  invitedById String?
+  createdAt   DateTime  @default(now())
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, acceptedAt])
 }
 
 model Membership {

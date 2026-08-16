@@ -509,6 +509,8 @@ export type TransactionRow = {
   categoryColor: string | null;
   incomeSourceName: string | null;
   vehicleName: string | null;
+  /** Quem registou. Só interessa em espaços com mais do que uma pessoa. */
+  createdById: string | null;
 };
 
 const rowInclude = {
@@ -560,6 +562,7 @@ function toRow(t: RowWithRelations): TransactionRow {
     categoryColor: categoryEntry?.category?.color ?? null,
     incomeSourceName: t.incomeSource?.name ?? null,
     vehicleName: t.vehicle?.name ?? null,
+    createdById: t.createdById,
   };
 }
 

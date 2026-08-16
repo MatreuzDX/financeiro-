@@ -7,6 +7,7 @@ import {
   KeyRound,
   PackageOpen,
   ScrollText,
+  Users,
   Wand,
 } from "lucide-react";
 import { requireSession } from "@/server/auth/guard";
@@ -96,6 +97,23 @@ export default async function DefinicoesPage() {
                 </span>
                 <span className="block text-[11px] text-muted">
                   Voltar às perguntas iniciais e reajustar os valores
+                </span>
+              </span>
+              <ChevronRight size={16} className="shrink-0 text-faint" aria-hidden />
+            </Link>
+          </li>
+          <li>
+            <Link
+              href="/definicoes/membros"
+              className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-surface-hover"
+            >
+              <Users size={17} className="shrink-0 text-muted" aria-hidden />
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm text-ink">
+                  Pessoas e espaços
+                </span>
+                <span className="block text-[11px] text-muted">
+                  Partilhar as contas com o casal, a família ou a equipa
                 </span>
               </span>
               <ChevronRight size={16} className="shrink-0 text-faint" aria-hidden />

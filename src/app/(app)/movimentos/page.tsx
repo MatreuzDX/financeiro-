@@ -14,6 +14,7 @@ import {
 } from "@/components/ui";
 import { PeriodPicker } from "@/components/period-picker";
 import { TransactionList } from "@/components/transaction-list";
+import { listMembers } from "@/server/workspaces";
 import { restoreTransactionAction } from "./actions";
 
 export const metadata: Metadata = { title: "Movimentos" };
@@ -46,6 +47,21 @@ export default async function MovimentosPage({
     ),
     getSummary(session.workspaceId, { from: period.from, to: period.to }),
   ]);
+
+  // Só se procuram os nomes quando o espaço é partilhado — num espaço de uma
+  // pessoa só, "registado por si" em cada linha é ruído.
+  const { membros } = await listMembers(session.workspaceId);
+  const autores =
+    membros.length > 1
+      ? new Map(
+          membros.map((m) => [
+            m.userId,
+            m.userId === session.userId
+              ? "você"
+              : m.user.name.split(" ")[0] || m.user.name,
+          ]),
+        )
+      : undefined;
 
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const query = periodToQuery(period);
@@ -128,6 +144,7 @@ export default async function MovimentosPage({
       <TransactionList
         rows={rows}
         today={today}
+        autores={autores}
         emptyTitle={
           search ? "Nada encontrado" : "Ainda não há movimentos neste período"
         }
