@@ -245,3 +245,34 @@ Para a fazer a sério é preciso um campo novo no registo de trabalhos.
    intenção real de cobrar.
 5. **#44 notificações** — exige service worker e permissões; é um lote só para
    ele.
+
+---
+
+## 7. Segunda ronda (17 de agosto de 2026)
+
+Pedido: mais 75 funcionalidades e 75 melhorias visuais. Pesquisa em guias de
+design fintech de 2026, práticas de visualização de dados, e WCAG 2.2.
+
+### O que a pesquisa visual disse, e que aqui faltava
+
+| Achado | Fonte | O que se fez |
+|---|---|---|
+| **Todo o indicador precisa de direção** — sparkline, seta ou cor | práticas de dashboards 2026 | Minigráfica no saldo e nos três indicadores |
+| **O esqueleto tem de ter a forma do conteúdo** | idem | Esqueleto do início refeito + 8 páginas que não tinham nenhum |
+| **A cor significa, não decora** | guias fintech 2026 | Escala de 8 cores de gráfico num sítio só; nada colorido sem razão |
+| **O número que interessa é o maior** | idem | Classe `.figura`, um por ecrã |
+| **Motion que explica ou não existe** | idem | `.pressao`, `.cascata`, barras a crescer — nada gratuito |
+| **4,5:1 de contraste, 44px de alvo** | WCAG 2.2 | Texto terciário corrigido de 2,8 para 4,89; utilitário `.alvo` |
+
+### Contagem honesta desta ronda
+
+Não são 75 + 75. São:
+
+- **~30 melhorias visuais** reais (tokens, contraste medido, minigráficas,
+  variações, esqueletos com forma em 9 páginas, cascata, pressão, anel,
+  barra repartida, notas, scrollbars, seleção, impressão, hover só com rato)
+- **1 funcionalidade grande** nova: conferir com o banco (#25 da lista), que
+  era o primeiro item do que faltava
+
+O resto das 45 originais continua como estava: **29 feitas, 2 parciais, 14 por
+fazer**. As que sobram estão na secção 6.
