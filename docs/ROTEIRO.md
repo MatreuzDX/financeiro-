@@ -59,7 +59,7 @@
 |---|---|---|---|---|
 | 1 | **Recorrências** — renda, internet, ordenado criados uma vez | A maior falha face à concorrência. Ninguém escreve a renda 12 vezes por ano | L | ✅ |
 | 2 | **Contas a pagar** com atrasos e confirmação | Previsto ≠ pago. O saldo só mexe quando se confirma | M | ✅ |
-| 3 | **Registo rápido em 3 toques** — folha por baixo, sem mudar de página | A ação mais repetida da app. Se cansa, a app morre | M | 🔜 |
+| 3 | **Registo rápido em 3 toques** — folha por baixo, sem mudar de página | A ação mais repetida da app. Se cansa, a app morre | M | ✅ |
 | 4 | **Metas de poupança** com ritmo e previsão | Poupar sem destino não se aguenta | M | ✅ |
 | 5 | **Editar um movimento** pela lista | Hoje só dá para apagar e criar de novo | S | ✅ |
 | 6 | **Património líquido** — o que tem menos o que deve, ao longo do tempo | É o ecrã principal da Maybe. Dá a visão que falta | M | ✅ |
@@ -74,14 +74,14 @@
 | 10 | **Importar extrato do banco (CSV)** com pré-visualização | Sem isto abandona-se ao fim de três semanas | L | ✅ |
 | 11 | **Regras de categorização** — "contém PINGO DOCE → Supermercado" | O motor do Firefly III. Poupa 80% do trabalho manual | M | ✅ |
 | 12 | **Anexar foto do recibo** | O telemóvel está na mão quando se paga. Sem OCR para já | M | 📅 |
-| 13 | **Recuperação de palavra-passe por email** (Resend) | A porta em falta. Hoje só pelo terminal | S | 🔜 |
+| 13 | **Recuperação de palavra-passe por email** (Resend) | A porta em falta. Hoje só pelo terminal | S | ◐ há recuperação de emergência por variável de ambiente; falta o email |
 | 14 | **Notificações** — só três: conta a vencer, categoria acima do orçamento, saldo a acabar | Mais do que isso e desligam-se todas | M | 📅 |
 
 ### Confiança — o que não se vê mas evita desastres
 
 | # | O quê | Porquê | Esf. | Estado |
 |---|---|---|---|---|
-| 15 | **Reconciliação** — "o banco diz X, a app diz Y" | A app diverge do banco mais cedo do que se pensa | M | 📅 |
+| 15 | **Reconciliação** — "o banco diz X, a app diz Y" | A app diverge do banco mais cedo do que se pensa | M | ✅ |
 | 16 | **Backup diário cifrado + ensaio de restauro** | Um backup que nunca foi restaurado não é um backup | M | 🔜 |
 | 17 | **2FA e passkeys** | São finanças. Palavra-passe sozinha não chega para sempre | M | 📅 |
 | 18 | **Invariantes a correr em produção**, semanalmente | Hoje só correm no CI e à mão | S | 🔜 |
@@ -93,15 +93,15 @@
 | # | O quê | Porquê | Esf. | Estado |
 |---|---|---|---|---|
 | 21 | **Análise em palavras** com nove observações + glossário | Um gráfico mostra, uma frase explica | M | ✅ |
-| 22 | **Assistente que responde a perguntas** sobre o teu dinheiro | Ferramentas tipadas, nunca SQL do modelo. `workspaceId` da sessão | L | 📅 |
+| 22 | **Assistente que responde a perguntas** sobre o teu dinheiro | Ferramentas tipadas, nunca SQL do modelo. `workspaceId` da sessão | L | ✅ precisa de ANTHROPIC_API_KEY na Vercel |
 | 23 | **Relatório em PDF** para mostrar a terceiros | Contabilista, banco, pedido de crédito | M | 📅 |
-| 24 | **Módulo de impostos** — reserva uma % de cada receita profissional | Dizer "lucraste 47,70 €" quando parte vai para o Estado é mentir | M | 📅 |
+| 24 | **Módulo de impostos** — reserva uma % de cada receita profissional | Dizer "lucraste 47,70 €" quando parte vai para o Estado é mentir | M | ✅ |
 
 ### Vender
 
 | # | O quê | Porquê | Esf. | Estado |
 |---|---|---|---|---|
-| 25 | **SaaS**: página pública, planos, Stripe, limites, convidar membros | A base já suporta — `workspaceId` em todas as tabelas desde o primeiro dia | L | 📅 |
+| 25 | **SaaS**: página pública, planos, Stripe, limites, convidar membros | A base já suporta — `workspaceId` em todas as tabelas desde o primeiro dia | L | ◐ página pública e convites feitos; planos e Stripe não |
 
 ---
 
