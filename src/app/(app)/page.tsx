@@ -31,6 +31,7 @@ import {
 import { needsSetup } from "@/server/setup";
 import { gerarOcorrencias, listarVencimentos } from "@/server/recurring";
 import { estadoDoHabito } from "@/server/habito";
+import { Sparkline, Variacao } from "@/components/visual";
 import { cn } from "@/lib/cn";
 import {
   Card,
@@ -134,6 +135,13 @@ export default async function DashboardPage({
     balanceCents: p.balanceCents,
   }));
 
+  // Séries para as minigráficas. Um número sozinho não diz se é bom ou mau;
+  // a linha ao lado responde sem ocupar espaço nem pedir um clique.
+  const serieSaldo = series.map((p) => p.balanceCents);
+  const serieEntrou = series.map((p) => p.incomeCents);
+  const serieSaiu = series.map((p) => p.expenseCents);
+  const serieSobrou = series.map((p) => p.incomeCents - p.expenseCents);
+
   const overBudget = budget.rows.filter((r) => r.over);
 
   return (
@@ -206,15 +214,23 @@ export default async function DashboardPage({
         <PeriodPicker current={period.key} from={period.from} to={period.to} />
       </div>
 
-      {/* ── Saldo total: o número principal, sozinho, sem concorrência ─── */}
+      {/* ── Saldo total: o número principal, sozinho, sem concorrência ───
+          Leva a linha do saldo ao lado. Um saldo sem direção não responde à
+          pergunta que toda a gente faz a seguir: "e está a subir ou a
+          descer?" */}
       <Card className="animate-rise bg-linear-to-br from-primary-soft to-surface">
-        <p className="text-xs font-medium text-muted">Saldo total</p>
-        <p className="tabular mt-1 text-4xl font-semibold tracking-tight text-ink">
-          {formatCents(balance)}
-        </p>
-        <p className="mt-1 text-xs text-muted">
-          Somado de todas as contas ativas
-        </p>
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <p className="text-xs font-medium text-muted">Saldo total</p>
+            <p className="figura mt-1 text-4xl text-ink">{formatCents(balance)}</p>
+            <p className="mt-1 text-xs text-muted">
+              Somado de todas as contas ativas
+            </p>
+          </div>
+          {serieSaldo.length > 1 ? (
+            <Sparkline valores={serieSaldo} largura={96} altura={40} />
+          ) : null}
+        </div>
       </Card>
 
       {/* ── Entrou / Saiu / Sobrou ──────────────────────────────────────── */}
@@ -225,6 +241,7 @@ export default async function DashboardPage({
           previous={previousSummary.incomeCents}
           tone="positive"
           Icon={TrendingUp}
+          serie={serieEntrou}
         />
         <StatCard
           label="Saiu"
@@ -233,6 +250,7 @@ export default async function DashboardPage({
           tone="negative"
           invertTrend
           Icon={TrendingDown}
+          serie={serieSaiu}
         />
         <StatCard
           label="Sobrou"
@@ -240,6 +258,7 @@ export default async function DashboardPage({
           previous={previousSummary.netCents}
           tone={summary.netCents >= 0 ? "positive" : "negative"}
           Icon={Wallet}
+          serie={serieSobrou}
         />
       </div>
 
@@ -572,6 +591,7 @@ function StatCard({
   tone,
   invertTrend = false,
   Icon,
+  serie,
 }: {
   label: string;
   cents: number;
@@ -579,13 +599,13 @@ function StatCard({
   tone: "positive" | "negative";
   invertTrend?: boolean;
   Icon: typeof Wallet;
+  serie?: number[];
 }) {
   // A comparação com o período anterior dá contexto de graça. Sem base de
   // comparação (período anterior a zero) não se mostra percentagem nenhuma:
   // "+∞%" não diz nada a ninguém.
   const hasBase = previous !== 0;
   const delta = hasBase ? percentOf(cents - previous, Math.abs(previous)) : 0;
-  const good = invertTrend ? delta < 0 : delta > 0;
 
   return (
     <Card className="animate-rise p-3 sm:p-4">
@@ -594,22 +614,31 @@ function StatCard({
         <p className="truncate text-[11px] font-medium text-muted">{label}</p>
       </div>
       <p
-        className={`tabular text-lg font-semibold tracking-tight sm:text-xl ${
+        className={`figura text-lg sm:text-xl ${
           tone === "positive" ? "text-positive" : "text-negative"
         }`}
       >
         {formatCents(cents)}
       </p>
+
+      {/* A linha do período, por baixo do valor. Ocupa 16px e responde à
+          pergunta seguinte — "e antes disto?" — sem um clique. */}
+      {serie && serie.length > 1 ? (
+        <Sparkline
+          valores={serie}
+          tom={invertTrend ? "neutro" : "auto"}
+          largura={72}
+          altura={16}
+          className="mt-1.5 w-full"
+        />
+      ) : null}
+
       {hasBase && delta !== 0 ? (
-        <p className="mt-1 truncate text-[10px] text-muted">
-          <span className={good ? "text-positive" : "text-negative"}>
-            {delta > 0 ? "+" : ""}
-            {delta}%
-          </span>{" "}
-          vs anterior
-        </p>
+        <div className="mt-1.5">
+          <Variacao percent={delta} inverter={invertTrend} />
+        </div>
       ) : (
-        <p className="mt-1 text-[10px] text-faint">sem comparação</p>
+        <p className="mt-1.5 text-[10px] text-faint">sem comparação</p>
       )}
     </Card>
   );

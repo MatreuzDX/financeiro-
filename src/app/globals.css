@@ -13,6 +13,22 @@
  * Lição do projeto anterior: os componentes NUNCA usam cores da marca
  * diretamente. Se usarem, o modo escuro fica com texto preto sobre fundo
  * preto e ninguém dá por isso até um telemóvel real o mostrar.
+ *
+ * ───────────────────────────────────────────────────────────────────────────
+ * AS TRÊS REGRAS QUE GOVERNAM O ASPETO DISTO
+ *
+ * 1. A COR SIGNIFICA ALGUMA COISA. Verde é dinheiro que entra, vermelho é
+ *    dinheiro que sai, âmbar é um aviso. Nada é colorido para enfeitar. Num
+ *    ecrã de dinheiro, uma cor decorativa é uma mentira sobre a importância.
+ *
+ * 2. O NÚMERO QUE INTERESSA É O MAIOR. A hierarquia faz-se com tamanho e
+ *    peso, não com cor nem com caixas. Um ecrã pode mostrar muita informação
+ *    e continuar calmo se só uma coisa gritar.
+ *
+ * 3. O MOVIMENTO EXPLICA OU NÃO EXISTE. Uma animação que não mostra de onde
+ *    veio um número, ou para onde foi, é latência com passos a mais. Tudo
+ *    respeita `prefers-reduced-motion`.
+ * ───────────────────────────────────────────────────────────────────────────
  */
 
 :root {
@@ -23,8 +39,17 @@
   --border: #e2e6ec;
   --border-strong: #cbd2dc;
   --text: #0f172a;
-  --muted: #64748b;
-  --faint: #94a3b8;
+  --muted: #576375;
+  /*
+   * O terciário era #94a3b8 — 2,8:1 sobre o fundo claro, ou seja, ABAIXO do
+   * mínimo de 4,5:1 da WCAG. E é usado a 10 e 11px, onde é mais preciso
+   * contraste, não menos.
+   *
+   * Medido no browser, não estimado: #6b7787 dava 4,25 (ainda chumbava sobre
+   * o fundo, embora passasse sobre branco). Este dá 4,89 sobre o fundo e
+   * 5,24 sobre os cartões.
+   */
+  --faint: #626d7e;
 
   --primary: #0f766e;
   --primary-hover: #115e59;
@@ -35,12 +60,28 @@
   --positive-soft: #dcfce7;
   --negative: #b91c1c;
   --negative-soft: #fee2e2;
-  --warning: #b45309;
+  /* O âmbar era #b45309 — escurecido para passar os 4,5:1 sobre branco. */
+  --warning: #a4530a;
   --warning-soft: #fef3c7;
 
   --ring: #0f766e;
   --shadow: 0 1px 2px rgb(15 23 42 / 0.06), 0 4px 16px rgb(15 23 42 / 0.05);
   --shadow-lg: 0 8px 32px rgb(15 23 42 / 0.12);
+
+  /* Elevação em três degraus. Mais do que isto ninguém distingue. */
+  --elev-1: 0 1px 2px rgb(15 23 42 / 0.05);
+  --elev-2: 0 2px 8px rgb(15 23 42 / 0.07), 0 1px 2px rgb(15 23 42 / 0.04);
+  --elev-3: 0 12px 40px rgb(15 23 42 / 0.14);
+
+  /* Cores dos gráficos: uma escala só, para nenhum ecrã inventar a sua. */
+  --chart-1: #0f766e;
+  --chart-2: #7c3aed;
+  --chart-3: #c2410c;
+  --chart-4: #0369a1;
+  --chart-5: #a21caf;
+  --chart-6: #4d7c0f;
+  --chart-7: #b45309;
+  --chart-8: #475569;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -52,8 +93,8 @@
     --border: #253140;
     --border-strong: #35455a;
     --text: #e8edf3;
-    --muted: #93a3b6;
-    --faint: #6b7c91;
+    --muted: #9fb0c4;
+    --faint: #8093a8;
 
     --primary: #2dd4bf;
     --primary-hover: #5eead4;
@@ -70,6 +111,19 @@
     --ring: #2dd4bf;
     --shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 4px 16px rgb(0 0 0 / 0.3);
     --shadow-lg: 0 8px 32px rgb(0 0 0 / 0.5);
+
+    --elev-1: 0 1px 2px rgb(0 0 0 / 0.35);
+    --elev-2: 0 2px 8px rgb(0 0 0 / 0.45), 0 1px 2px rgb(0 0 0 / 0.3);
+    --elev-3: 0 12px 40px rgb(0 0 0 / 0.6);
+
+    --chart-1: #2dd4bf;
+    --chart-2: #a78bfa;
+    --chart-3: #fb923c;
+    --chart-4: #38bdf8;
+    --chart-5: #e879f9;
+    --chart-6: #a3e635;
+    --chart-7: #fbbf24;
+    --chart-8: #94a3b8;
   }
 }
 
@@ -81,8 +135,8 @@
   --border: #253140;
   --border-strong: #35455a;
   --text: #e8edf3;
-  --muted: #93a3b6;
-  --faint: #6b7c91;
+  --muted: #9fb0c4;
+  --faint: #8093a8;
 
   --primary: #2dd4bf;
   --primary-hover: #5eead4;
@@ -99,6 +153,19 @@
   --ring: #2dd4bf;
   --shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 4px 16px rgb(0 0 0 / 0.3);
   --shadow-lg: 0 8px 32px rgb(0 0 0 / 0.5);
+
+  --elev-1: 0 1px 2px rgb(0 0 0 / 0.35);
+  --elev-2: 0 2px 8px rgb(0 0 0 / 0.45), 0 1px 2px rgb(0 0 0 / 0.3);
+  --elev-3: 0 12px 40px rgb(0 0 0 / 0.6);
+
+  --chart-1: #2dd4bf;
+  --chart-2: #a78bfa;
+  --chart-3: #fb923c;
+  --chart-4: #38bdf8;
+  --chart-5: #e879f9;
+  --chart-6: #a3e635;
+  --chart-7: #fbbf24;
+  --chart-8: #94a3b8;
 }
 
 @theme inline {
@@ -133,6 +200,7 @@
 
 html {
   -webkit-text-size-adjust: 100%;
+  scroll-behavior: smooth;
 }
 
 body {
@@ -141,6 +209,17 @@ body {
   font-family: var(--font-sans);
   /* Evita o "salto" horizontal em telemóveis quando aparece uma scrollbar. */
   overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  /* Um pouco mais apertado: junta as palavras sem apertar a leitura. */
+  letter-spacing: -0.006em;
+}
+
+/* Títulos apertam mais: é o que os faz parecer desenhados e não crescidos. */
+h1,
+h2,
+h3 {
+  letter-spacing: -0.02em;
 }
 
 /* Área segura dos telemóveis com entalhe / barra de gestos. */
@@ -154,9 +233,65 @@ body {
   font-feature-settings: "tnum";
 }
 
-:where(a, button, input, select, textarea):focus-visible {
+/*
+ * O número grande de um ecrã: o saldo, o "quanto é mesmo meu", o ganho por
+ * hora. O valor que a página existe para dar, e o único que grita.
+ */
+.figura {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+  letter-spacing: -0.03em;
+  font-weight: 600;
+  line-height: 1.05;
+}
+
+/*
+ * Alvo de toque de 44px — o mínimo da WCAG e das diretrizes da Apple.
+ * Aumenta a área CLICÁVEL sem mexer no desenho: um ícone de 16px continua a
+ * parecer de 16px, mas apanha o dedo. Precisa de `relative` no elemento.
+ */
+.alvo::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 44px;
+  height: 44px;
+  transform: translate(-50%, -50%);
+}
+
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
   outline: 2px solid var(--ring);
   outline-offset: 2px;
+  border-radius: 0.375rem;
+}
+
+/* Seleção de texto na cor da marca, em vez do azul do sistema. */
+::selection {
+  background: var(--primary-soft);
+  color: var(--text);
+}
+
+/* Barras de deslocamento discretas, e do tema. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 999px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
 }
 
 /* ── Animações ────────────────────────────────────────────────────────────
@@ -203,6 +338,26 @@ body {
   }
 }
 
+/* O brilho que atravessa um esqueleto de carregamento. */
+@keyframes shimmer {
+  from {
+    background-position: 180% 0;
+  }
+  to {
+    background-position: -180% 0;
+  }
+}
+
+/* Uma barra a encher-se. Serve para orçamentos e metas. */
+@keyframes crescer {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
 .animate-rise {
   animation: rise 0.32s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
@@ -215,10 +370,71 @@ body {
   animation: slide-up 0.28s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
+/*
+ * Entrada em cascata. Uma lista que aparece toda de uma vez lê-se como um
+ * bloco; escalonada em 40 ms, o olho segue a ordem. Pára ao 8.º elemento —
+ * a partir daí a espera acumulada nota-se e passa a irritar.
+ */
+.cascata > * {
+  animation: rise 0.32s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.cascata > *:nth-child(1) {
+  animation-delay: 0ms;
+}
+.cascata > *:nth-child(2) {
+  animation-delay: 40ms;
+}
+.cascata > *:nth-child(3) {
+  animation-delay: 80ms;
+}
+.cascata > *:nth-child(4) {
+  animation-delay: 120ms;
+}
+.cascata > *:nth-child(5) {
+  animation-delay: 160ms;
+}
+.cascata > *:nth-child(6) {
+  animation-delay: 200ms;
+}
+.cascata > *:nth-child(7) {
+  animation-delay: 240ms;
+}
+.cascata > *:nth-child(n + 8) {
+  animation-delay: 280ms;
+}
+
 .skeleton {
-  background: var(--surface-2);
-  animation: pulse-soft 1.4s ease-in-out infinite;
+  background: linear-gradient(
+    90deg,
+    var(--surface-2) 25%,
+    var(--surface-hover) 50%,
+    var(--surface-2) 75%
+  );
+  background-size: 220% 100%;
+  animation: shimmer 1.6s linear infinite;
   border-radius: 0.5rem;
+}
+
+.animate-crescer {
+  transform-origin: left;
+  animation: crescer 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/*
+ * Pressão ao toque. Um botão que afunda 2,5% ao ser premido responde ANTES
+ * de o servidor responder — e é isso que faz uma app parecer rápida mesmo
+ * quando não é.
+ */
+.pressao {
+  transition:
+    transform 0.12s cubic-bezier(0.16, 1, 0.3, 1),
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    opacity 0.15s ease;
+}
+
+.pressao:active:not(:disabled) {
+  transform: scale(0.975);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -228,6 +444,11 @@ body {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .pressao:active:not(:disabled) {
+    transform: none;
   }
 }
 
@@ -243,4 +464,34 @@ body {
 
 .recharts-surface:focus {
   outline: none;
+}
+
+/*
+ * Impressão. Alguém vai querer levar um relatório ao contabilista em papel,
+ * e sem isto sai a navegação toda e um fundo escuro a gastar tinta.
+ */
+@media print {
+  nav,
+  aside,
+  .nao-imprimir {
+    display: none !important;
+  }
+
+  body {
+    background: #ffffff;
+    color: #000000;
+  }
+
+  main {
+    max-width: none;
+    padding: 0;
+  }
+
+  /* Cartões viram blocos com um traço, que é o que se lê em papel. */
+  [class*="rounded-2xl"],
+  [class*="rounded-xl"] {
+    box-shadow: none !important;
+    border: 1px solid #cccccc !important;
+    break-inside: avoid;
+  }
 }
