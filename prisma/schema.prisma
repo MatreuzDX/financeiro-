@@ -149,6 +149,7 @@ model Workspace {
   categoryRules  CategoryRule[]
   fiscalProfile  FiscalProfile?
   aiUsage        AiUsage[]
+  reconciliacoes Reconciliation[]
 }
 
 /// Uso do assistente, por mes.
@@ -280,6 +281,7 @@ model Account {
   workspace      Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   entries        Entry[]
   recurringRules RecurringRule[]
+  reconciliacoes Reconciliation[]
 
   @@unique([workspaceId, name])
   @@index([workspaceId, archived, sortOrder])
@@ -767,4 +769,28 @@ model AuditLog {
 
   @@index([workspaceId, createdAt])
   @@index([userId, createdAt])
+}
+
+/// Uma verificacao contra o extrato do banco.
+///
+/// Guarda-se para a app saber HA QUANTO TEMPO ninguem confere. A diferenca
+/// entre a app e o banco cresce devagar; o perigo nao e a diferenca de hoje,
+/// e os quatro meses sem ninguem olhar.
+model Reconciliation {
+  id          String   @id @default(cuid())
+  workspaceId String
+  accountId   String
+  /// Data do saldo conferido, nao a data em que se conferiu.
+  date        DateTime @db.Date
+  bankCents   Int
+  appCents    Int
+  diffCents   Int
+  notes       String?
+  createdById String?
+  createdAt   DateTime @default(now())
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  account   Account   @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, accountId, date])
 }
